@@ -1,0 +1,21 @@
+CustomerId,Name,HomeStoreId,LoyaltyTier
+CU001,Marta Puig,ST01,Gold
+CU002,Jordi Serra,ST01,Silver
+CU003,Laia Vidal,ST02,Bronze
+CU004,Pau Ferrer,ST02,Gold
+CU005,Nuria Camps,ST01,Platinum
+CU006,Alvaro Molina,ST03,Silver
+CU007,Carmen Ruiz,ST03,Gold
+CU008,Sergio Blanco,ST03,Bronze
+CU009,Elena Torres,ST04,Silver
+CU010,Miguel Angel Soler,ST04,Gold
+CU011,Cristina Gimenez,ST04,Bronze
+CU012,Unai Etxeberria,ST05,Platinum
+CU013,Ander Zubizarreta,ST05,Silver
+CU014,Maite Aguirre,ST05,Gold
+CU015,Rocio Jimenez,ST06,Bronze
+CU016,Antonio Reyes,ST06,Silver
+CU017,Lucia Navarro,ST06,Gold
+CU018,Pablo Iglesias Vega,ST02,Silver
+CU019,Marc Roig,ST01,Bronze
+CU020,Berta Costa,ST02,Platinum

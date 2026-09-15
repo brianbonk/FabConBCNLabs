@@ -1,0 +1,16 @@
+# Python dependencies for the Fabric IQ workshop's Python tooling.
+#
+# ms-fabric-cli provides the `fab` command setup/provision_fabric_iq.py shells
+# out to. pyyaml is used to parse setup/manifest.yaml. Neither script needs
+# anything else -- both deliberately stick to the Python standard library
+# (subprocess, argparse, sys, pathlib, re, csv, dataclasses) beyond these
+# pins, per this workshop's "fool proof, minimal moving parts" design goal.
+ms-fabric-cli>=1.0.0
+pyyaml>=6.0
+
+# azure-eventhub is required ONLY for Module 02's lab, to run
+# artifacts/generator/freezer_telemetry_generator.py (Fabric Eventstream's
+# custom-endpoint source is Event Hubs-compatible SAS/AMQP, not a plain HTTPS
+# endpoint -- see the generator script's docstring for why). It is not needed
+# to run provision_fabric_iq.py itself.
+azure-eventhub>=5.11.0

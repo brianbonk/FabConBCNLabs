@@ -1,0 +1,58 @@
+{
+    "sources": [
+        {
+            "id": "7163f94f-03c1-4f9a-b16e-b2727029afd4",
+            "name": "FreezerTelemetrySource",
+            "type": "CustomEndpoint",
+            "properties": {}
+        }
+    ],
+    "destinations": [
+        {
+            "id": "3dcb19e7-8ea7-4252-9b81-94f8b90d2d11",
+            "name": "Eventhouse",
+            "type": "Eventhouse",
+            "properties": {
+                "dataIngestionMode": "ProcessedIngestion",
+                "workspaceId": "c8a420ac-9167-4535-b03d-78228bcc3276",
+                "itemId": "fbca7690-7d00-4d53-a975-f4067b8b114e",
+                "databaseName": "ColdChainKQLDB",
+                "tableName": "FreezerTelemetryRaw",
+                "inputSerialization": {
+                    "type": "Json",
+                    "properties": {
+                        "encoding": "UTF8"
+                    }
+                }
+            },
+            "inputNodes": [
+                {
+                    "name": "FreezerTelemetryEventstream-stream"
+                }
+            ],
+            "inputSchemas": [
+                {
+                    "name": "FreezerTelemetryEventstream-stream",
+                    "schema": {
+                        "columns": []
+                    }
+                }
+            ]
+        }
+    ],
+    "streams": [
+        {
+            "id": "930c3c79-374a-47ab-b766-826a7d093917",
+            "name": "FreezerTelemetryEventstream-stream",
+            "type": "DefaultStream",
+            "properties": {},
+            "inputNodes": [
+                {
+                    "name": "FreezerTelemetrySource"
+                }
+            ]
+        }
+    ],
+    "operators": [],
+    "compatibilityLevel": "1.1"
+}

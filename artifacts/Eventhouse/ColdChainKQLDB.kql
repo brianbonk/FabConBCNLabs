@@ -1,0 +1,198 @@
+// =============================================================================
+// ColdChainKQLDB.kql
+//
+// KQL database schema for the "Fabric IQ" workshop's cold-chain scenario.
+// Run this script section-by-section in a KQL Queryset attached to the
+// ColdChainEventhouse > ColdChainKQLDB database, AFTER the Eventhouse/KQL DB
+// item has been created by hand (see ../Eventhouse/HOW-TO-EXPORT.md), and
+// BEFORE running `fab export` to capture the finished item definition.
+//
+// This is also a teaching artifact for Module 02 ("Telemetry + semantic
+// context, grounding signals"): it shows the classic RTI pattern of
+//   raw fact stream --(lookup enrichment)--> latest-state materialized view
+// which is exactly what a Fabric IQ ontology later projects into entity
+// properties and relationships.
+//
+// Scenario recap:
+//   - FreezerTelemetryEventstream pushes one JSON event per reading into
+//     FreezerTelemetryRaw (the raw ingestion table below).
+//   - StoresDim / FreezersDim are dimension ("reference"/"lookup") tables
+//     that mirror the Stores and Freezers Delta tables in ColdChainLakehouse
+//     (populated there by the 00_LoadReferenceData notebook).
+//   - FreezerTelemetryEnriched is a materialized view that always holds the
+//     LATEST reading per FreezerId (arg_max by Timestamp), enriched with the
+//     store and freezer attributes via the `lookup` operator. This enriched,
+//     always-current view is what downstream consumers (dashboards, the
+//     Fabric IQ ontology's Freezer entity, Activator rules in Module 04)
+//     should query -- never the raw table directly.
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 1. RAW INGESTION TABLE
+// -----------------------------------------------------------------------------
+// One row per telemetry reading pushed by the Eventstream. Schema matches the
+// JSON payload emitted by artifacts/generator/freezer_telemetry_generator.py
+// and the fixed naming contract for this workshop:
+//   { "FreezerId": "...", "StoreId": "...", "Timestamp": "...", "TemperatureC": ..., "DoorOpen": ... }
+.create table FreezerTelemetryRaw (
+    FreezerId    : string,
+    StoreId      : string,
+    Timestamp    : datetime,
+    TemperatureC : real,
+    DoorOpen     : bool
+)
+
+// Document the table so it shows up nicely in the Fabric UI / OneLake catalog.
+.alter table FreezerTelemetryRaw docstring "Raw freezer telemetry events as pushed by FreezerTelemetryEventstream. One row per reading. Do not query directly for dashboards/agents -- use FreezerTelemetryEnriched instead."
+
+// -----------------------------------------------------------------------------
+// 1a. INGESTION MAPPING
+// -----------------------------------------------------------------------------
+// The Eventstream destination UI can usually auto-map JSON fields to columns
+// of the same name, but defining an explicit mapping makes the contract
+// visible in source control and gives you something concrete to point the
+// Eventstream destination step at if auto-mapping ever needs overriding.
+.create table FreezerTelemetryRaw ingestion json mapping "FreezerTelemetryRawMapping"
+'['
+'  {"column":"FreezerId",    "path":"$.FreezerId"},'
+'  {"column":"StoreId",      "path":"$.StoreId"},'
+'  {"column":"Timestamp",    "path":"$.Timestamp"},'
+'  {"column":"TemperatureC", "path":"$.TemperatureC"},'
+'  {"column":"DoorOpen",     "path":"$.DoorOpen"}'
+']'
+
+// (Optional but recommended for a live workshop) Keep the raw table small so
+// query performance stays snappy during the live demo -- 2 days is plenty
+// for a 4-hour session. Tune/remove for a real deployment.
+.alter-merge table FreezerTelemetryRaw policy retention softdelete = 2d
+
+
+// -----------------------------------------------------------------------------
+// 2. DIMENSION ("LOOKUP") TABLES
+// -----------------------------------------------------------------------------
+// `lookup` (like materialized-view dimension joins) requires the dimension
+// table to live in the SAME KQL database as the fact table -- cross-database
+// and cross-Eventhouse queries are not supported inside a materialized view
+// definition. Since Stores/Freezers are authored once in the Lakehouse
+// (Delta tables, loaded by 00_LoadReferenceData.Notebook), we mirror the
+// columns we need here as plain KQL tables and populate them with a
+// ONE-TIME copy.
+//
+// For the workshop, the one-time copy is done with `.set-or-replace` and an
+// inline `datatable(...)` literal below, matching artifacts/SampleData/*.csv
+// exactly -- this keeps the lab fully self-contained (no extra pipeline/
+// notebook step required to see enrichment working). In a real production
+// deployment, replace this block with one of:
+//   (a) a scheduled Data Factory / Fabric Data Pipeline "Copy data" activity
+//       that copies ColdChainLakehouse.Stores / .Freezers into these tables
+//       on a schedule (e.g. nightly, since dimension data changes rarely), or
+//   (b) a small notebook cell using the Kusto Python SDK's ingest client
+//       (azure-kusto-ingest) to push the Lakehouse dataframe straight into
+//       the KQL DB after 00_LoadReferenceData runs.
+// Either approach keeps the "single source of truth" for reference data in
+// the Lakehouse, with the KQL DB holding a queryable mirror for `lookup`.
+
+.create table StoresDim (
+    StoreId   : string,
+    StoreName : string,
+    Region    : string,
+    City      : string
+)
+
+.create table FreezersDim (
+    FreezerId   : string,
+    StoreId     : string,
+    Model       : string,
+    Capacity    : long,
+    InstallDate : datetime
+)
+
+// One-time seed of StoresDim -- mirrors artifacts/SampleData/stores.csv.
+.set-or-replace StoresDim <|
+datatable (StoreId: string, StoreName: string, Region: string, City: string)
+[
+    "ST01", "Fabrikam Fresh Eixample", "Catalonia",      "Barcelona",
+    "ST02", "Fabrikam Fresh Gracia",   "Catalonia",      "Barcelona",
+    "ST03", "Fabrikam Fresh Malasana", "Madrid",         "Madrid",
+    "ST04", "Fabrikam Fresh Ruzafa",   "Valencia",       "Valencia",
+    "ST05", "Fabrikam Fresh Abando",   "Basque Country", "Bilbao",
+    "ST06", "Fabrikam Fresh Triana",   "Andalusia",      "Seville"
+]
+
+// One-time seed of FreezersDim -- mirrors artifacts/SampleData/freezers.csv.
+.set-or-replace FreezersDim <|
+datatable (FreezerId: string, StoreId: string, Model: string, Capacity: long, InstallDate: datetime)
+[
+    "FRZ001", "ST01", "Liebherr GGPv 6570",     650, datetime(2022-03-14),
+    "FRZ002", "ST01", "Carrier Viento 550",     550, datetime(2022-03-14),
+    "FRZ003", "ST01", "Epta Bering M2",         700, datetime(2023-06-01),
+    "FRZ004", "ST02", "Arneg Genesis Cube",     600, datetime(2021-11-08),
+    "FRZ005", "ST02", "Zoeller Iceberg 400",    400, datetime(2022-09-19),
+    "FRZ006", "ST03", "Liebherr GGPv 6570",     650, datetime(2020-05-22),
+    "FRZ007", "ST03", "Framec Frare 800",       800, datetime(2021-02-10),
+    "FRZ008", "ST03", "Criocabin Frozen Isola", 500, datetime(2023-01-30),
+    "FRZ009", "ST04", "Carrier Viento 550",     550, datetime(2022-07-04),
+    "FRZ010", "ST04", "Epta Bering M2",         700, datetime(2022-07-04),
+    "FRZ011", "ST05", "Arneg Genesis Cube",     600, datetime(2019-10-12),
+    "FRZ012", "ST05", "Zoeller Iceberg 400",    400, datetime(2021-04-18),
+    "FRZ013", "ST05", "Framec Frare 800",       800, datetime(2023-08-25),
+    "FRZ014", "ST06", "Liebherr GGPv 6570",     650, datetime(2022-12-01),
+    "FRZ015", "ST06", "Criocabin Frozen Isola", 500, datetime(2023-03-15)
+]
+
+
+// -----------------------------------------------------------------------------
+// 3. ENRICHED MATERIALIZED VIEW
+// -----------------------------------------------------------------------------
+// FreezerTelemetryEnriched always holds exactly one row per FreezerId: the
+// latest reading (arg_max by Timestamp), enriched with store/freezer context.
+//
+// Kusto materialized views require the `summarize` operator to be the LAST
+// operator in the view definition, but operators (including `lookup`) ARE
+// allowed BEFORE it, provided every table referenced besides the source
+// table is declared as a `dimensionTables` property -- see the "materialized
+// views that join with a dimension table" pattern in the official docs:
+// https://learn.microsoft.com/kusto/management/materialized-views/materialized-view-create
+//
+//   - `lookup kind=leftouter StoresDim on StoreId` brings in StoreName/Region/City.
+//   - `lookup kind=leftouter (FreezersDim | project FreezerId, Model, Capacity) on FreezerId`
+//     brings in Model/Capacity only (we deliberately drop FreezersDim's own
+//     StoreId column via `project` so it doesn't collide with the fact
+//     table's StoreId).
+//   - `arg_max(Timestamp, *) by FreezerId` keeps only the newest row per
+//     freezer, across ALL columns present at that point (raw + looked-up).
+//
+// autoUpdateSchema=true keeps the view from breaking if FreezerTelemetryRaw
+// ever gains new columns (recommended for arg_max(Timestamp, *) views).
+.create materialized-view with (
+        dimensionTables    = dynamic(["StoresDim", "FreezersDim"]),
+        autoUpdateSchema   = true,
+        docString          = "Latest reading per freezer, enriched with store and freezer attributes. Query this, not FreezerTelemetryRaw, for dashboards, Activator rules, and the Fabric IQ ontology's Freezer entity."
+    )
+    FreezerTelemetryEnriched on table FreezerTelemetryRaw
+{
+    FreezerTelemetryRaw
+    | lookup kind=leftouter StoresDim on StoreId
+    | lookup kind=leftouter (FreezersDim | project FreezerId, Model, Capacity) on FreezerId
+    | summarize arg_max(Timestamp, *) by FreezerId
+}
+
+
+// -----------------------------------------------------------------------------
+// 4. SANITY-CHECK QUERIES (run these after the Eventstream is streaming)
+// -----------------------------------------------------------------------------
+// Confirm raw events are arriving:
+//   FreezerTelemetryRaw | top 20 by Timestamp desc
+//
+// Confirm the enriched view has one row per freezer, with store/model filled in:
+//   FreezerTelemetryEnriched | order by FreezerId asc
+//
+// Module 04 preview -- this is the shape of query an Activator rule (or the
+// Fabric IQ Operations Agent) will use to flag a freezer drifting toward
+// failure. TemperatureC above -12C is our "door open / compressor fault"
+// anomaly threshold; see artifacts/generator/freezer_telemetry_generator.py
+// for how the synthetic anomaly is injected.
+//   FreezerTelemetryEnriched
+//   | where TemperatureC > -12.0
+//   | project FreezerId, StoreName, Model, TemperatureC, DoorOpen, Timestamp
