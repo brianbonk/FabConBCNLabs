@@ -1,0 +1,77 @@
+# manifest.yaml
+#
+# Ordered list of Fabric items that provision_fabric_iq.py provisions into the
+# "Fabric IQ" workspace. Order matters: the Eventstream's destination refers
+# to the Eventhouse/KQL DB, and the Notebook's Lakehouse attachment refers to
+# the Lakehouse, so anything that is *referenced* must be provisioned before
+# the item that references it.
+#
+# Each entry:
+#   name: the exact display name the item will have in the workspace
+#         (must match the fixed naming contract used throughout the labs)
+#   type: the Fabric item type suffix used by `fab` (e.g. "Lakehouse",
+#         "Eventhouse", "Eventstream", "Notebook")
+#   mode: "import" (default, omit if not needed), "create", or
+#         "notebook_source".
+#         - import: `fab import ... -i <path>` a pre-captured item-definition
+#           folder. Used for Eventhouse and Eventstream -- their definition
+#           JSON shape isn't publicly documented, so it can only come from a
+#           real `fab export` against a dev tenant.
+#         - create: `fab mkdir` an empty item, then `fab cp` local files into
+#           it. Used for Lakehouse, because `fab export`/`fab import` do not
+#           support the Lakehouse item type at all -- see
+#           artifacts/Lakehouse/HOW-TO-EXPORT.md for why.
+#         - notebook_source: `fab import` directly from a checked-in
+#           notebook git-source `.py` file (Fabric's own "# META"/"# CELL"
+#           format) -- no pre-exported folder needed, since that format IS
+#           publicly documented and plain-text. Used for the Notebook -- see
+#           artifacts/Notebooks/HOW-TO-EXPORT.md.
+#   path: (mode: import only) path to the exported item-definition folder,
+#         relative to the repo root -- this is what gets passed to
+#         `fab import ... -i <path>`.
+#   sample_data_dir: (mode: create only) local directory whose files get
+#         `fab cp`'d in, one file per `cp` call (local-to-OneLake copy does
+#         not support directories).
+#   sample_data_dest: (mode: create only) OneLake path, relative to the
+#         item, that each file from sample_data_dir is copied to (e.g.
+#         "Files/SampleData").
+#   source_py: (mode: notebook_source only) path to the notebook's
+#         git-source `.py` file, relative to the repo root.
+#   default_lakehouse: (mode: notebook_source only) `name` of another item
+#         in this manifest (must be a Lakehouse, provisioned earlier) whose
+#         real item ID gets substituted into that `.py` file's
+#         `__LAKEHOUSE_ID__`/`__WORKSPACE_ID__` placeholders before import --
+#         this is what binds the notebook's default Lakehouse, with no
+#         manual "Add data items" step needed.
+#
+# NOTE: if a pre-event dry run shows `fab deploy` (manifest-driven, wraps
+# fabric-cicd) reliably covers the two import-mode item types below, that
+# half of provision_fabric_iq.py could be simplified to a single
+# `fab deploy` call instead of looping with `fab import`. That substitution
+# is intentionally NOT made here yet -- see the comment in
+# provision_fabric_iq.py's import step. `fab deploy` would not change how the
+# Lakehouse or Notebook are provisioned either way, since neither is an
+# import-based item.
+
+items:
+  - name: ColdChainLakehouse
+    type: Lakehouse
+    mode: create
+    sample_data_dir: artifacts/SampleData
+    sample_data_dest: Files/SampleData
+
+  - name: ColdChainEventhouse
+    type: Eventhouse
+    mode: import
+    path: artifacts/Eventhouse/ColdChainEventhouse.Eventhouse
+
+  - name: FreezerTelemetryEventstream
+    type: Eventstream
+    mode: import
+    path: artifacts/Eventstream/FreezerTelemetryEventstream.Eventstream
+
+  - name: 00_LoadReferenceData
+    type: Notebook
+    mode: notebook_source
+    source_py: artifacts/Notebooks/00_LoadReferenceData.py
+    default_lakehouse: ColdChainLakehouse

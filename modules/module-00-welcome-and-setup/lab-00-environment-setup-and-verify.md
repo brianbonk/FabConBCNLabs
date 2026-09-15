@@ -1,0 +1,250 @@
+# Lab 00: Set Up and Verify Your Environment
+
+**Duration:** 35 minutes
+**Prerequisites:** Microsoft is providing the Fabric tenant/capacity and a dedicated user account for
+every attendee at this event — see [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md).
+The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor access are already set up on that account; there's nothing for you to arrange. Everything you *do* need to do — installing software and provisioning your own workspace — happens right here, live, in Part A below. If you already ran `provision_fabric_iq.py` successfully before today, skip straight to **Part B**.
+
+**Learning objectives**
+- Get your own "Fabric IQ" workspace provisioned and ready, live, if you haven't already.
+- Confirm the workspace and its four provisioned items exist and are healthy.
+- Confirm the Lakehouse's reference tables contain data.
+- Confirm the Eventhouse's raw telemetry table exists (even though it's expected to be empty right now).
+- Know where to go for help if your own environment isn't in the expected state.
+
+## Before you begin
+
+- [ ] Your laptop has admin rights to install software (Python packages).
+- [ ] You have your Microsoft-provided sign-in for this event ready (see
+      `prerequisites/PREREQUISITES.md` §2 for how these are distributed) — this is **not** your own
+      organization's Fabric account.
+- [ ] If you already ran `setup/provision_fabric_iq.py` before today and it reported success, skip ahead to **Part B — Verify your environment**.
+
+## Part A — Set up your environment (skip if you already did this)
+
+1. **Confirm Python 3.10+ is installed:**
+
+   ```bash
+   python3 --version
+   ```
+
+   > ✅ Expected result: `Python 3.10.x` or higher (up to 3.13). If it's missing or older, install a
+   > current Python 3 now from [python.org](https://www.python.org/downloads/) (or your OS's package
+   > manager) before continuing.
+
+2. **Clone this repository**, if you don't already have it on this machine:
+
+   ```bash
+   git clone <repo-url>
+   cd FabConBCNRTI-workshop/FabricIQ
+   ```
+
+   <details>
+   <summary>Troubleshooting</summary>
+
+   If `git clone` hangs or fails, you may be on a restrictive venue network blocking it — see
+   [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) §3, or ask a neighbor to
+   share the folder directly for now and sort out network access at the next break.
+   </details>
+
+3. **Install dependencies:**
+
+   ```bash
+   cd setup
+   pip install -r requirements.txt
+   ```
+
+   > ✅ Expected result: installs `ms-fabric-cli`, `pyyaml`, and `azure-eventhub` (the last one is for
+   > Module 02's telemetry generator, not this script) without errors. Confirm with `fab --version`.
+
+4. **Run the provisioning script:**
+
+   ```bash
+   python3 provision_fabric_iq.py
+   ```
+
+   This prompts you to sign in (`fab auth login`) with your **Microsoft-provided account for this
+   event** if you aren't already, then lists your eligible Fabric capacities and asks you to pick one —
+   there should be exactly one, already assigned to you by Microsoft.
+
+   <details>
+   <summary>Troubleshooting — sign-in hangs or fails</summary>
+
+   If the browser/device-code flow doesn't complete, you're likely on a restrictive venue network. Try a
+   different network (phone hotspot) if one's available, or pair with a neighbor for now — see
+   [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) §3.
+   </details>
+
+   <details>
+   <summary>Troubleshooting — no non-trial capacity available, or a trial-capacity warning</summary>
+
+   **Stop here — this specific problem cannot be fixed live.** Ontology, Graph, and Data Agent features
+   do not work on trial (FT1) capacities, and every module from 03 onward will fail all afternoon if you
+   proceed on one anyway. This shouldn't happen — Microsoft is providing a dedicated non-trial capacity
+   per attendee — so if you see this, don't spend your Part A time troubleshooting it yourself:
+   - **Flag a facilitator immediately.** This means the Microsoft-provided account/capacity isn't set up
+     the way it should be; the presenter needs to follow up with Microsoft, not something you did wrong
+     or can fix by re-running the script.
+   - **Pair with a neighbor** whose capacity is working and follow along on their screen for the rest of
+     today while that gets sorted out — see [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md).
+   </details>
+
+5. **Let the script finish.** It creates a "Fabric IQ" workspace and provisions the Lakehouse, Eventhouse,
+   Eventstream, and Notebook items.
+
+   > ✅ Expected result: a summary block printing `[OK]` for all four items, ending with a deep link into
+   > the workspace. This typically takes a few minutes — while it runs, this is a good moment to skim
+   > ahead to Module 01.
+
+   <details>
+   <summary>Troubleshooting — `[FAILED]` or `MISSING` items in the summary</summary>
+
+   Most errors map directly to a fix in [`setup/README.md`](../../setup/README.md)'s troubleshooting
+   table — check there first. It's safe to just re-run `python3 provision_fabric_iq.py` (pass `--force`
+   to skip prompts) once you've addressed the underlying cause; it won't duplicate anything that already
+   succeeded.
+   </details>
+
+## Part B — Verify your environment
+
+Continue from here whether you just finished Part A or arrived with your workspace already provisioned.
+
+6. **Open** [app.fabric.microsoft.com](https://app.fabric.microsoft.com) in your browser and sign in if
+   prompted.
+
+   ![Step 6](../../assets/screenshots/lab-00/step-01.png)
+
+   > ✅ Expected result: the Fabric portal home page loads, showing your recent items and a workspace list
+   > in the left navigation.
+
+7. **Click** **Workspaces** in the left navigation, then **click** the **Fabric IQ** workspace.
+
+   ![Step 7](../../assets/screenshots/lab-00/step-02.png)
+
+   <details>
+   <summary>Troubleshooting</summary>
+
+   If you don't see a workspace named exactly **Fabric IQ** in the list, Part A either wasn't run,
+   didn't finish, or created the workspace under a different account than the one you're signed in with
+   now. Go back and re-run `python3 provision_fabric_iq.py`, or see the "If your environment isn't ready"
+   section below.
+   </details>
+
+   > ✅ Expected result: the workspace opens and shows a list of items.
+
+   *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
+
+8. **Confirm** the item list shows exactly these four items (names are case-sensitive and exact):
+   - `ColdChainLakehouse` (Lakehouse)
+   - `ColdChainEventhouse` (Eventhouse)
+   - `FreezerTelemetryEventstream` (Eventstream)
+   - `00_LoadReferenceData` (Notebook)
+
+   ![Step 8](../../assets/screenshots/lab-00/step-03.png)
+
+   <details>
+   <summary>Troubleshooting</summary>
+
+   Missing one or more items? Re-run `provision_fabric_iq.py` — it's safe to re-run and will only create
+   what's missing, not duplicate what already exists. If it still fails, see
+   [`setup/README.md`](../../setup/README.md) for mapped error messages, or flag a facilitator.
+   </details>
+
+   > ✅ Expected result: all four items are present. You do **not** see an Ontology, Graph, or Data Agent
+   > item yet — those don't exist yet on purpose. We build them live starting in Module 03.
+
+9. **Click** **ColdChainLakehouse** to open it, then **expand** the **Tables** node in the left Explorer
+   pane if it isn't already expanded.
+
+   ![Step 9](../../assets/screenshots/lab-00/step-04.png)
+
+   > ✅ Expected result: three Delta tables are listed — `Customers`, `Stores`, `Freezers`.
+
+10. **Click** each of the three tables in turn and **confirm** each one shows rows of data in the preview
+    pane, not an empty table.
+
+    ![Step 10](../../assets/screenshots/lab-00/step-05.png)
+
+    <details>
+    <summary>Troubleshooting</summary>
+
+    Tables exist but are empty? The `00_LoadReferenceData` notebook may not have run to completion.
+    **Open** the `00_LoadReferenceData` notebook from the workspace item list and **click** **Run all** to
+    re-seed the reference data, then come back and re-check the tables. If it still fails, see
+    [`setup/README.md`](../../setup/README.md).
+    </details>
+
+    > ✅ Expected result: `Customers`, `Stores`, and `Freezers` each contain multiple rows of reference
+    > data — this is the static business context Module 02 grounds live telemetry against.
+
+    *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
+
+11. **Go back** to the workspace item list and **click** **ColdChainEventhouse** to open it, then **click**
+    the **ColdChainKQLDB** database in the left Explorer pane.
+
+    ![Step 11](../../assets/screenshots/lab-00/step-06.png)
+
+    > ✅ Expected result: the KQL database opens with a query editor pane and `FreezerTelemetryRaw` listed
+    > as a table under the database.
+
+12. **Type** the following query into the query editor and **click** **Run**:
+
+    ```kql
+    FreezerTelemetryRaw
+    | take 10
+    ```
+
+    ![Step 12](../../assets/screenshots/lab-00/step-07.png)
+
+    > ✅ Expected result: the query runs successfully and returns **zero rows**. This is expected, not a
+    > bug — the `FreezerTelemetryRaw` table exists and is ready to receive data, but the synthetic freezer
+    > telemetry generator hasn't been started yet. That happens in Module 02. If the query errors instead
+    > of returning zero rows (for example, "table not found"), that's the actual problem to flag — see
+    > Troubleshooting below.
+
+    <details>
+    <summary>Troubleshooting</summary>
+
+    - **Query returns 0 rows:** expected — no action needed, continue to the checkpoint below.
+    - **"Table 'FreezerTelemetryRaw' could not be resolved":** the Eventhouse/KQL database import may not
+      have completed. Re-run `provision_fabric_iq.py`; if the table still doesn't appear, see
+      [`setup/README.md`](../../setup/README.md).
+    - **Query editor won't open / permissions error:** confirm you're signed in with the same
+      Microsoft-provided account the script used. Contributor rights on the workspace should already be
+      in place on that account — if they're not, this is a Microsoft-side setup issue, not something to
+      self-diagnose; flag a facilitator.
+    </details>
+
+    *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
+
+## If your environment isn't ready
+
+If Part A didn't complete, or any of Part B's checks fail and re-running `provision_fabric_iq.py` doesn't
+fix it within a couple of minutes, don't burn your whole Module 00 slot troubleshooting solo:
+
+- **Pair with a neighbor** whose environment verified successfully — this is the designated fallback per
+  [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md), and it's completely fine to follow
+  along on someone else's screen for the rest of this section while your own gets sorted out at a break.
+- Flag a facilitator — an already-provisioned "instructor" workspace is available to screen-share as a
+  last resort.
+- Full error-message-to-fix mappings live in [`setup/README.md`](../../setup/README.md) and
+  [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) if you want to fix it properly
+  at the next break instead of pairing up.
+
+> 🎤 Facilitator note: pause here and ask who's seeing something different before moving on — this is now
+> a 35-minute agenda slot precisely because most of the room is provisioning live, not just stragglers;
+> don't let it silently eat into Module 01's time regardless.
+
+<!-- facilitator: the most common failure here is signing in with a different account than the one the script authenticated with — check that first before assuming the script itself failed. The second most common is a trial capacity slipping through despite the hard-block warning; don't let anyone proceed on one. -->
+
+## Checkpoint
+
+At the end of this lab, your "Fabric IQ" workspace should contain:
+- `ColdChainLakehouse` with three populated tables: `Customers`, `Stores`, `Freezers`
+- `ColdChainEventhouse` with a `ColdChainKQLDB` database containing an empty (but queryable)
+  `FreezerTelemetryRaw` table
+- `FreezerTelemetryEventstream`
+- `00_LoadReferenceData` notebook
+
+No Ontology, Graph, Data Agent, or Operations Agent items exist yet — that's expected. Continue to
+[Module 01: Architecture & Context](../module-01-architecture-and-context/theory-01-fabric-iq-architecture-and-context.md).
