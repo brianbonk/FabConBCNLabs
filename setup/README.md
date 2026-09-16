@@ -11,26 +11,32 @@ below are the same ones that lab walks you through. Running it here ahead of tim
 
 ## Quick start
 
-Pick whichever launcher matches your OS, or call the Python script directly.
+**First, check your machine has what this needs** (Git, Python 3.10-3.13,
+and a working, isolated pip) and let it fix what it safely can:
+
+```bash
+cd setup
+python3 check_environment.py          # or: ./check-environment.sh / .\check-environment.ps1
+```
+
+If it created a virtual environment, activate it as instructed and re-run
+with `--install-deps` — see [`check_environment.py`](check_environment.py)
+or the "Missing or broken tools" section below for details. Once it reports
+`ENVIRONMENT READY`, pick whichever launcher matches your OS, or call the
+Python script directly.
 
 **macOS / Linux:**
 ```bash
-cd setup
-pip install -r requirements.txt
 ./run-setup.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-cd setup
-pip install -r requirements.txt
 .\run-setup.ps1
 ```
 
 **Direct (any OS):**
 ```bash
-cd setup
-pip install -r requirements.txt
 python3 provision_fabric_iq.py
 ```
 
@@ -65,22 +71,6 @@ workspace and import the four items.
 8. Prints a summary with a workspace deep link and a pointer to
    `modules/module-00-welcome-and-setup/lab-00-environment-setup-and-verify.md`.
 
-## What this script explicitly does NOT do
-
-- **It does not create the Ontology, Data Agent, or Operations Agent items.**
-  These are still-preview item types without confirmed `fab` support for
-  scripted creation, and — more importantly — building them live is the
-  entire point of Modules 03 and 04. You build these by hand, in the lab.
-- **It does not run the `00_LoadReferenceData` notebook for you.** Importing
-  a notebook doesn't execute it. Running it — and watching the `Customers`,
-  `Stores`, `Freezers` Delta tables appear — is a deliberate, visible step in
-  the early lab guides.
-- **It does not configure the Eventstream's connection string** into
-  `artifacts/generator/freezer_telemetry_generator.py`. That connection
-  string is only obtainable from the Fabric portal after the Eventstream
-  item exists in *your* workspace, so it's a one-time manual copy/paste step
-  covered in `lab-02`, not something this script can do for you.
-
 ## Flags
 
 | Flag | Description |
@@ -95,6 +85,22 @@ Every step is designed to be safe to re-run: creating an already-existing
 workspace is handled by reuse (not a crash), and re-importing an item that
 already exists is handled via `fab import ... -f` when `--force` is passed.
 
+## Missing or broken tools
+
+Run `python3 check_environment.py` any time you're not sure your machine is
+ready — it checks Git, your Python version (must be 3.10-3.13; ms-fabric-cli
+doesn't yet support 3.14+), and whether you're in a virtual environment, and
+creates one at the repo root (`.venv`) if you aren't. It can't activate that
+venv for you (a script can't change its parent shell's environment) — it
+prints the exact `source .venv/bin/activate` / `.venv\Scripts\Activate.ps1`
+command to run, after which re-run with `--install-deps` to also install
+`requirements.txt`.
+
+This exists because recent Python installs (Homebrew and python.org on
+macOS, most current Linux distros) refuse `pip install` outside a virtual
+environment and raise `externally-managed-environment` — using a venv for
+this workshop's tooling avoids that entirely.
+
 ## Troubleshooting
 
 Each of these maps to a numbered section in
@@ -103,7 +109,9 @@ check there first for the underlying fix.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| `error: externally-managed-environment` on `pip install` | Your system Python (Homebrew/python.org/most Linux distros) blocks pip installs outside a venv (PEP 668). | Run `python3 check_environment.py`, activate the venv it creates, then re-run `pip install -r requirements.txt`. |
 | `Command not found: fab` | Fabric CLI isn't installed. | `pip install ms-fabric-cli` (or `pip install -r requirements.txt`), confirm with `fab --version`. See Lab 00, Part A, steps 1 and 3. |
+| `Command not found: git` | Git isn't installed. | Run `python3 check_environment.py` for an OS-specific install command, or see PREREQUISITES.md's "Before you clone" section. |
 | Script hangs or fails at "Authentication" | Not signed in, or `fab auth login`'s browser/device-code flow is blocked by a corporate VPN/proxy. | Run `fab auth login` manually and watch for errors. See PREREQUISITES.md §3. |
 | "No capacities were returned by the Fabric CLI" | Your account has no visible/eligible Fabric capacity, or lacks Contributor+ role on one. | Confirm capacity access with your tenant admin. See PREREQUISITES.md §2. |
 | "Capacity looks like a trial capacity" warning | You selected (or only have) an FT1/trial capacity. | Use a non-trial F2+/P1+ capacity — trial capacities don't support Ontology/Graph/Data Agent features at all, and later modules will fail. See PREREQUISITES.md §1. Do not use `--force` to bypass this unless you fully understand later modules won't work. |

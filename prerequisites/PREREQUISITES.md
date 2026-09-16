@@ -43,13 +43,49 @@ comment with the actual instructions attendees need, and update Lab 00's sign-in
       troubleshooting path if it comes up unexpectedly, but knowing about it ahead of time saves room
       time.
 
+## 4. Before you clone: Git and Python
+
+Every attendee needs **Git** (to clone this repo) and **Python 3.10-3.13** (to run the setup scripts) on
+their own laptop — this is on each attendee, not something Microsoft's tenant setup covers. Note the
+Python range: ms-fabric-cli, which this workshop's tooling depends on, does not yet support Python 3.14+,
+so a brand-new default install on some systems can be *too new*. If you're not sure what you have:
+
+**Windows:**
+```powershell
+winget install --id Git.Git -e --source winget
+winget install --id Python.Python.3.12 -e
+```
+(or download installers from [git-scm.com](https://git-scm.com/download/win) and
+[python.org](https://www.python.org/downloads/) — tick "Add python.exe to PATH" during Python setup)
+
+**macOS:**
+```bash
+xcode-select --install   # installs Git via Apple's Command Line Tools
+brew install python@3.12 # if you use Homebrew; otherwise use the python.org installer
+```
+
+**Linux:**
+```bash
+# Debian/Ubuntu
+sudo apt update && sudo apt install -y git python3 python3-venv python3-pip
+# Fedora/RHEL
+sudo dnf install -y git python3 python3-pip
+```
+
+Once you've cloned the repo, run `python3 setup/check_environment.py` from
+`FabricIQ/` — it re-checks both of these, plus pip, and sets up an isolated
+virtual environment for you so `pip install` doesn't fail with
+`externally-managed-environment` (a common error on recent Homebrew/Linux
+Python installs). See [`setup/README.md`](../setup/README.md) for details.
+
 ## Optional: doing Module 00's setup ahead of time
 
 Nothing above requires it, but any attendee who already has their Microsoft-provided account and wants to
-save room time on the day is welcome to run Module 00's Part A themselves beforehand: install Python
-3.10+ and the Fabric CLI, then follow [`setup/README.md`](../setup/README.md) to run
-`provision_fabric_iq.py`. If you do, just skip straight to Part B when Module 00 starts. This is a
-convenience, not something to assume — the agenda is built assuming most people haven't.
+save room time on the day is welcome to run Module 00's Part A themselves beforehand: install Git and
+Python 3.10-3.13 (section 4 above), then follow [`setup/README.md`](../setup/README.md) to run
+`check_environment.py` and `provision_fabric_iq.py`. If you do, just skip straight to Part B when Module
+00 starts. This is a convenience, not something to assume — the agenda is built assuming most people
+haven't.
 
 ## Support contact
 

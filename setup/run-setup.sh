@@ -13,8 +13,13 @@ set -euo pipefail
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 was not found on your PATH." >&2
-    echo "Install Python 3.10+ (see ../prerequisites/PREREQUISITES.md, section 3) and re-run." >&2
+    echo "Install Python 3.10-3.13 (see ../prerequisites/PREREQUISITES.md, section 4) and re-run." >&2
     exit 1
+fi
+
+if [ -z "${VIRTUAL_ENV:-}" ]; then
+    echo "NOTE: no virtual environment detected. If 'fab' isn't found below, run" >&2
+    echo "      python3 check_environment.py --install-deps  first." >&2
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

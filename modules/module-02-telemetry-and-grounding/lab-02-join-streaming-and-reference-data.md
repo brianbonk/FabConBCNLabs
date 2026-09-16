@@ -89,16 +89,20 @@ module — watch for trailing spaces or partial copies when circulating. -->
 
 ### Part C — Run the generator and confirm events are flowing
 
-8. **Open** a terminal at the root of the cloned repo and **install** the one extra dependency this
-   script needs (Fabric's custom-endpoint source speaks the Event Hubs/AMQP protocol, not plain HTTPS —
-   see the comment block at the top of the script for why):
+8. **Open** a terminal at the root of the cloned repo, **activate** the virtual environment from Module
+   00's Part A, and **install** the one extra dependency this script needs (Fabric's custom-endpoint
+   source speaks the Event Hubs/AMQP protocol, not plain HTTPS — see the comment block at the top of the
+   script for why):
 
    ```
+   source .venv/bin/activate          # macOS/Linux — Windows: .venv\Scripts\Activate.ps1
    pip install azure-eventhub
    ```
 
    > ✅ Expected result: `azure-eventhub` installs without errors. If you already ran
-   > `pip install -r setup/requirements.txt` in Module 00's Part A, this is already done — skip ahead.
+   > `check_environment.py --install-deps` in Module 00's Part A, this is already done — just activate
+   > the venv and skip ahead. (Installing outside the venv may fail with
+   > `externally-managed-environment` — see `setup/README.md` if that happens.)
 
 9. **Run** the generator:
 
