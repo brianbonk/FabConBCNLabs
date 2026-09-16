@@ -125,14 +125,28 @@ check there first for the underlying fix.
 - **Auth check command**: confirmed live (fab 0.1.10) that `fab auth status`
   exits 0 and prints `✓ Logged in to ...` when authenticated, non-zero
   otherwise. The script uses that directly (`is_authenticated()`).
-- **Capacity listing parsing**: confirmed live that
-  `fab -c "ls .capacities -l"` columns (`name`, `id`, `sku`, `region`,
-  `state`, `subscriptionId`, `resourceGroup`, `admins`, `tags`) are padded
-  with runs of 2+ spaces, and that capacity names themselves can contain
-  single spaces (e.g. `Premium Per User - Reserved.Capacity`) — a plain
-  `.split()` truncates those to their first word. `list_capacities()` splits
-  on `\s{2,}` instead, and checks the `sku` column (plus the full line as a
-  fallback) for trial-SKU keywords (`trial`, `ft1`, `free`).
+- **Capacity listing parsing**: `list_capacities()` calls
+  `fab -c "ls .capacities -l --output_format json"` and parses the JSON
+  `result.data` array, rather than the human-readable text table. This
+  replaced an earlier version that split the text table on 2+-space runs —
+  confirmed live (against a real attendee run) that `fab`'s text-table
+  renderer word-wraps long cell values (capacity names, GUIDs) to fit the
+  terminal width, silently splitting one capacity's row across several
+  physical lines and corrupting the parsed name entirely (workspace
+  creation then failed with `Capacity '...' could not be found`).
+  `--output_format json` is not subject to that truncation at all (see
+  `fabric_cli/utils/fab_ui.py`'s `print_output_format` docstring: "Only
+  applied for text output; JSON output is not modified"), and its `data`
+  array's keys match `fabric_cli/commands/fs/ls/fab_fs_ls_capacity.py`'s
+  `columns` list exactly (`name`, `id`, `sku`, `region`, `state`,
+  `subscriptionId`, `resourceGroup`, `admins`, `tags`) — confirmed by
+  reading that module directly in the installed package. Trial-SKU
+  detection (`is_trial`) still checks the `sku` field (plus the formatted
+  summary string) for keywords (`trial`, `ft1`, `free`).
+  `workspace_exists()` and `verify_items()` still parse `fab`'s text output
+  and share the same theoretical wrapping risk for very long workspace/item
+  names — not yet hit live, so not converted to JSON output here, but worth
+  doing the same way if that ever surfaces.
 - **Lakehouse provisioning**: `fab export`/`fab import` do not support the
   Lakehouse item type at all — confirmed via
   `fabric_cli/core/fab_config/command_support.yaml` in the installed

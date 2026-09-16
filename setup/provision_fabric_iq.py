@@ -53,7 +53,7 @@ See setup/README.md for the full flag reference and troubleshooting guide.
 from __future__ import annotations
 
 import argparse
-import re
+import json
 import shutil
 import subprocess
 import sys
@@ -264,7 +264,23 @@ class Capacity:
 
 
 def list_capacities(dry_run: bool) -> list[Capacity]:
-    result = fab_c("ls .capacities -l", dry_run=dry_run, allow_dry_run_execute=True)
+    # Uses --output_format json rather than parsing the human-readable table:
+    # confirmed live that fab's text-table renderer word-wraps long cell
+    # values (names, GUIDs) to fit the terminal width, which silently
+    # splits a single capacity's row across multiple physical lines on a
+    # normal-width terminal. A previous version of this function parsed
+    # that text table line-by-line (splitting on 2+-space runs) and treated
+    # each wrapped line as its own capacity -- on a real attendee laptop
+    # this produced garbled, wrong capacity names and made workspace
+    # creation fail with a cryptic "Capacity ... could not be found".
+    # `--output_format json` is not affected by terminal width at all (see
+    # fabric_cli's fab_ui.print_output_format docstring: "truncate_columns
+    # ... Only applied for text output; JSON output is not modified"), so
+    # this reads the exact same fields Fabric CLI's own capacity-ls command
+    # returns (fabric_cli/commands/fs/ls/fab_fs_ls_capacity.py).
+    result = fab_c(
+        "ls .capacities -l --output_format json", dry_run=dry_run, allow_dry_run_execute=True
+    )
     if result.returncode != 0:
         raise ProvisioningError(
             "Could not list capacities (`fab -c \"ls .capacities -l\"` failed).",
@@ -274,22 +290,27 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
             ),
         )
 
+    try:
+        rows = json.loads(result.stdout)["result"]["data"] or []
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        raise ProvisioningError(
+            "Could not parse the capacity listing returned by the Fabric CLI.",
+            hint=(
+                "This may mean an incompatible `fab` CLI version changed its JSON output shape. "
+                "Confirm with `fab --version` and try `pip install -U ms-fabric-cli`."
+            ),
+        ) from exc
+
     capacities: list[Capacity] = []
-    for line in result.stdout.splitlines():
-        line = line.strip()
-        if not line or line.lower().startswith(("name", "-", "capacity")):
-            continue  # skip blank lines and a probable header row
-        # Confirmed live against fab 0.1.10: `fab -c "ls .capacities -l"`
-        # columns are "name  id  sku  region  state  subscriptionId
-        # resourceGroup  admins  tags", padded with runs of 2+ spaces. A
-        # plain .split() truncates any capacity name containing a space
-        # (e.g. "Premium Per User - Reserved.Capacity" would parse as just
-        # "Premium") -- split on 2+-space runs instead so multi-word names
-        # survive intact.
-        columns = re.split(r"\s{2,}", line)
-        name = columns[0]
-        sku = columns[2] if len(columns) > 2 else ""
-        capacities.append(Capacity(name=name, sku=sku, raw_line=line))
+    for row in rows:
+        if not isinstance(row, dict) or not row.get("name"):
+            continue
+        raw_line = (
+            f"{row['name']}  sku={row.get('sku', '?')}  "
+            f"region={row.get('region', '?')}  state={row.get('state', '?')}  "
+            f"resourceGroup={row.get('resourceGroup', '?')}  admins={row.get('admins', [])}"
+        )
+        capacities.append(Capacity(name=row["name"], sku=row.get("sku") or "", raw_line=raw_line))
 
     if not capacities:
         raise ProvisioningError(

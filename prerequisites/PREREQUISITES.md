@@ -31,10 +31,7 @@ environment they're providing has:
 ## 2. How attendees sign in
 
 Each attendee signs in with the **Microsoft-provided account for this event**, not their own
-organization's Fabric login. <!-- presenter TODO: once Microsoft confirms the distribution mechanism
-(e.g. printed at check-in, emailed ahead of time, displayed at the start of Module 00), replace this
-comment with the actual instructions attendees need, and update Lab 00's sign-in step to match. --> Module
-00's lab signs in with that provided account.
+organization's Fabric login.
 
 ## 3. Network caveat (worth testing ahead of time, not required)
 
