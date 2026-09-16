@@ -36,17 +36,14 @@ Every module handed off directly to the next. Here's the whole arc in one place:
 **Architecture → grounding → ontology → agents → trust.** That's the whole line, and it's the same line
 Module 00's kickoff opened with four hours ago.
 
-## Official Microsoft tutorials this workshop adapted
+## Official Microsoft tutorials
 
-Every lab in this section traces back to tested, official Microsoft content rather than an untested,
-presenter-invented click path. If you want the unmodified originals to re-run on your own:
-
-- [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq) — Module 00
-- [Fabric IQ overview](https://learn.microsoft.com/fabric/iq/overview) and [Ontology tutorial part 0: Introduction](https://learn.microsoft.com/fabric/iq/ontology/tutorial-0-introduction) — Module 01
-- [Digital Twin Builder RTI tutorial, parts 1–2](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-1-upload-contextual-data), [Kusto update policies](https://learn.microsoft.com/kusto/management/update-policy), and [materialized views](https://learn.microsoft.com/kusto/management/materialized-views/materialized-view-use-cases) — Module 02
-- [Ontology tutorial part 1: Create an ontology](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology), the [mslearn-fabric hands-on labs](https://microsoftlearning.github.io/mslearn-fabric/) (labs 23, 24, 27), and [Digital Twin Builder tutorial, parts 3–4](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-1-upload-contextual-data) — Module 03
-- [Ontology tutorial part 4: Consume ontology from agents](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent), the [mslearn-fabric hands-on labs](https://microsoftlearning.github.io/mslearn-fabric/) (lab 28), [Create an operations agent grounded in an ontology](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent), and [Ontology rules](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules) — Module 04
-- [Agent integration options for ontology (preview)](https://learn.microsoft.com/fabric/iq/ontology/concepts-agent-integration) and [Fabric IQ Ontology MCP (preview)](https://learn.microsoft.com/microsoft-copilot-studio/mcp-fabric-iq-ontology) — Module 05
+- [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)
+- [Fabric IQ overview](https://learn.microsoft.com/fabric/iq/overview) and [Ontology tutorial part 0: Introduction](https://learn.microsoft.com/fabric/iq/ontology/tutorial-0-introduction)
+- [Digital Twin Builder RTI tutorial, parts 1–2](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-1-upload-contextual-data), [Kusto update policies](https://learn.microsoft.com/kusto/management/update-policy), and [materialized views](https://learn.microsoft.com/kusto/management/materialized-views/materialized-view-use-cases)
+- [Ontology tutorial part 1: Create an ontology](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology), the [mslearn-fabric hands-on labs](https://microsoftlearning.github.io/mslearn-fabric/) (labs 23, 24, 27), and [Digital Twin Builder tutorial, parts 3–4](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-1-upload-contextual-data)
+- [Ontology tutorial part 4: Consume ontology from agents](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent), the [mslearn-fabric hands-on labs](https://microsoftlearning.github.io/mslearn-fabric/) (lab 28), [Create an operations agent grounded in an ontology](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent), and [Ontology rules](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules)
+- [Agent integration options for ontology (preview)](https://learn.microsoft.com/fabric/iq/ontology/concepts-agent-integration) and [Fabric IQ Ontology MCP (preview)](https://learn.microsoft.com/microsoft-copilot-studio/mcp-fabric-iq-ontology)
 
 ## Keep exploring after today
 
