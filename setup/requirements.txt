@@ -5,6 +5,11 @@
 # anything else -- both deliberately stick to the Python standard library
 # (subprocess, argparse, sys, pathlib, re, csv, dataclasses) beyond these
 # pins, per this workshop's "fool proof, minimal moving parts" design goal.
+#
+# Requires Python 3.10-3.13. ms-fabric-cli's latest PyPI release does not yet
+# publish wheels for 3.14+ (`Requires-Python >=3.10,<3.14`), so this install
+# fails outright on newer interpreters -- run setup/check_environment.py
+# first, it checks this for you.
 ms-fabric-cli>=1.0.0
 pyyaml>=6.0
 

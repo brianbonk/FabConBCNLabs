@@ -18,25 +18,26 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 - [ ] You have your Microsoft-provided sign-in for this event ready (see
       `prerequisites/PREREQUISITES.md` §2 for how these are distributed) — this is **not** your own
       organization's Fabric account.
-- [ ] If you already ran `setup/provision_fabric_iq.py` before today and it reported success, skip ahead to **Part B — Verify your environment**.
 
 ## Part A — Set up your environment (skip if you already did this)
 
-1. **Confirm Python 3.10+ is installed:**
+1. **Confirm Git and Python 3.10-3.13 are installed:**
 
    ```bash
+   git --version
    python3 --version
    ```
 
-   > ✅ Expected result: `Python 3.10.x` or higher (up to 3.13). If it's missing or older, install a
-   > current Python 3 now from [python.org](https://www.python.org/downloads/) (or your OS's package
-   > manager) before continuing.
+   > ✅ Expected result: a Git version prints, and `Python 3.10.x` through `3.13.x`. **Python 3.14 is too
+   > new** — the Fabric CLI this workshop depends on doesn't support it yet. If either is missing or your
+   > Python is outside that range, see [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md)
+   > §4 for an OS-specific install command, then re-check before continuing.
 
 2. **Clone this repository**, if you don't already have it on this machine:
 
    ```bash
-   git clone <repo-url>
-   cd FabConBCNRTI-workshop/FabricIQ
+   git clone https://github.com/brianbonk/FabConIQLabs
+   cd FabConIQLabs
    ```
 
    <details>
@@ -47,19 +48,40 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    share the folder directly for now and sort out network access at the next break.
    </details>
 
-3. **Install dependencies:**
+3. **Run the environment checker**, then create and activate an isolated virtual environment as it
+   instructs:
+
+   ```bash
+   python3 setup/check_environment.py
+   ```
+
+   This re-confirms Git and Python, then — since recent Python installs (Homebrew, python.org, most Linux
+   distros) refuse `pip install` outside a virtual environment and raise
+   `externally-managed-environment` — creates a `.venv` folder for you if one isn't already active. It
+   prints the exact activate command for your OS/shell; run it, then re-run the checker with
+   `--install-deps` to also install the dependencies:
+
+   ```bash
+   source .venv/bin/activate          # macOS/Linux — Windows: .venv\Scripts\Activate.ps1
+   python3 setup/check_environment.py --install-deps
+   ```
+
+   > ✅ Expected result: ends with `ENVIRONMENT READY`, and `fab --version` now works. This installs
+   > `ms-fabric-cli`, `pyyaml`, and `azure-eventhub` (the last one is for Module 02's telemetry generator,
+   > not this script).
+
+   <details>
+   <summary>Troubleshooting</summary>
+
+   If you see `error: externally-managed-environment` here, your venv likely isn't active — check your
+   shell prompt shows `(.venv)`, then retry. See [`setup/README.md`](../../setup/README.md) for the full
+   troubleshooting table.
+   </details>
+
+4. **Run the provisioning script** (from the same activated-venv terminal, inside `setup/`):
 
    ```bash
    cd setup
-   pip install -r requirements.txt
-   ```
-
-   > ✅ Expected result: installs `ms-fabric-cli`, `pyyaml`, and `azure-eventhub` (the last one is for
-   > Module 02's telemetry generator, not this script) without errors. Confirm with `fab --version`.
-
-4. **Run the provisioning script:**
-
-   ```bash
    python3 provision_fabric_iq.py
    ```
 

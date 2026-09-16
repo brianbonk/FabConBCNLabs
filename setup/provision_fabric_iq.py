@@ -144,7 +144,7 @@ def run(cmd: list[str], *, dry_run: bool = False, allow_dry_run_execute: bool = 
     except FileNotFoundError as exc:
         raise ProvisioningError(
             f"Command not found: {cmd[0]}",
-            hint=f"Is '{cmd[0]}' installed and on your PATH? See {PREREQUISITES_PATH}, section 3.",
+            hint=f"Is '{cmd[0]}' installed and on your PATH? See {PREREQUISITES_PATH}, section 4.",
         ) from exc
     return result
 
@@ -175,7 +175,7 @@ def check_python_version() -> None:
         raise ProvisioningError(
             f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ is required "
             f"(found {sys.version_info.major}.{sys.version_info.minor}).",
-            hint=f"Install a newer Python 3 and re-run. See {PREREQUISITES_PATH}, section 3.",
+            hint=f"Install a newer Python 3 and re-run. See {PREREQUISITES_PATH}, section 4.",
         )
     print(f"Python {sys.version_info.major}.{sys.version_info.minor} OK")
 
@@ -187,7 +187,7 @@ def check_fab_installed(dry_run: bool) -> str:
             "Fabric CLI ('fab') was not found or did not respond to --version.",
             hint=(
                 "Install it with:  pip install ms-fabric-cli\n"
-                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 3."
+                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 4."
             ),
         )
     version = result.stdout.strip()
