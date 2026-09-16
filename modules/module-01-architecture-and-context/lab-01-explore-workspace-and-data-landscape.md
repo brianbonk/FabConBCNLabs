@@ -43,8 +43,6 @@ Confirm your environment matches this state before starting:
    > roughly `Customer` owns `Store`, `Store` contains `Freezer` — even though nothing in the Lakehouse
    > yet formally declares that relationship. Keep this in mind; Module 03 is where we make it explicit.
 
-   *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
-
 3. **Go back** to the workspace item list and **open** **ColdChainEventhouse**, then **click** the
    **ColdChainKQLDB** database.
 
@@ -74,14 +72,10 @@ Confirm your environment matches this state before starting:
    this lab assumes that check already passed.
    </details>
 
-   *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
-
 5. **Compare** what you just saw in `FreezerTelemetryRaw`'s schema against the `Freezers` table's schema
    in the Lakehouse (go back and re-open it if you need to). **Notice** what's missing from the telemetry
    side: no store name, no customer, no target temperature, no indication of whether -9°C (or whatever
    value eventually streams in) is normal or a breach.
-
-   ![Step 5](../../assets/screenshots/lab-01/step-05.png)
 
    > ✅ Expected result: you can articulate the gap out loud — `FreezerTelemetryRaw` has an ID and a
    > number, full stop. Every piece of business meaning needed to answer "is this freezer OK?" lives in

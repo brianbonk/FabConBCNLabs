@@ -27,7 +27,6 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
 2. If it's affecting the room broadly, flag it to the facilitator immediately. See [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md) for the pre-recorded walkthrough and static screenshot fallback for this specific module.
 3. After the workshop, see [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) section 1 and have your tenant admin enable **Enable Ontology item (preview)** in the admin portal's tenant settings.
 
-*Adapted from: [Ontology tutorial part 0 — Prerequisites](https://learn.microsoft.com/fabric/iq/ontology/tutorial-0-introduction#prerequisites), [Required tenant settings for ontology (preview)](https://learn.microsoft.com/fabric/iq/ontology/overview-tenant-settings)*
 </details>
 
 ## Steps
@@ -61,8 +60,6 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
 
    If you see an error that Fabric is unable to create the ontology item, this is almost always the same tenant-setting gap as Step 2 — re-check with your facilitator rather than retrying repeatedly. Also confirm the name uses only letters, numbers, and underscores (no spaces or dashes) — `ColdChainOntology` already satisfies this.
    </details>
-
-*Adapted from: [Ontology tutorial part 1 — Create ontology (preview) item (Build directly from OneLake)](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology?pivots=onelake#create-ontology-preview-item)*
 
 <!-- facilitator: this is the step where a mistyped tenant setting shows up as an error, not a missing menu item — watch for attendees who get *past* step 2 but fail at step 4, since that's a different failure mode (retry) than step 2 (escalate). -->
 
@@ -98,8 +95,6 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
     If the `Stores` table doesn't appear as a selectable source, confirm it's a **managed** table in `ColdChainLakehouse` (not a shortcut) and that the lakehouse doesn't have OneLake security enabled — ontology data binding doesn't support either of those configurations.
     </details>
 
-*Adapted from: [Ontology tutorial part 1 — Bind Store data (Build directly from OneLake)](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology?pivots=onelake#bind-store-data)*
-
 ### Create the Customer entity type and bind it to Lakehouse data
 
 13. **Select** **Home** to return to the configuration canvas.
@@ -117,8 +112,6 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
     ![Step 18](../../assets/screenshots/lab-03/step-18.png)
 
     > ✅ Expected result: the `Customer` entity type shows 4 properties, all bound to the `Customers` table. `HomeStoreId` is present as a plain property for now — it becomes the join key for a relationship in Step 30.
-
-*Adapted from: [Ontology tutorial part 1 — Add other entity types (Build directly from OneLake)](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology?pivots=onelake#add-other-entity-types-products-saleevent)*
 
 > 🎤 Facilitator note: pause here and confirm everyone has two entity types on the canvas, both bound, before moving to Freezer — Freezer is where the pattern gets genuinely new, and it's not worth building on a shaky Store/Customer step.
 
@@ -143,8 +136,6 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
 26. **Click** **Save** on the data binding, confirm success, then **click** **Cancel**.
 
     > ✅ Expected result: `Freezer`'s **Configure** page shows 5 properties, all bound to the `Freezers` lakehouse table — this is `Freezer`'s **one allowed static binding**.
-
-*Adapted from: [Ontology tutorial part 2 — Bind static data to properties](https://learn.microsoft.com/fabric/iq/ontology/tutorial-2-enrich-ontology#bind-static-data-to-properties)*
 
 ### Add Freezer's live properties, bound to Eventhouse
 
@@ -176,8 +167,6 @@ This is the step that makes `Freezer` different from `Store` and `Customer`: the
     If the timestamp column isn't selectable, confirm its underlying type is `datetime`, `date`, or `timestamp` — other types aren't supported for the timeseries binding.
     </details>
 
-*Adapted from: [Ontology tutorial part 2 — Bind time series data to additional properties](https://learn.microsoft.com/fabric/iq/ontology/tutorial-2-enrich-ontology#bind-time-series-data-to-additional-properties)* (the closest official precedent for binding one entity type to both a Lakehouse static source and an Eventhouse live source is this same Ontology tutorial's own Freezer example; the pattern is conceptually identical to the Digital Twin Builder RTI tutorial's [static-plus-streaming contextualization approach](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-1-upload-contextual-data), parts 3–4, which projects a similar ontology into Eventhouse from the other direction.)
-
 <!-- facilitator: this step group is the highest-risk moment in the whole 4-hour section. If it's going to break, it breaks here — walk the room physically during steps 27-32 instead of narrating from the front. -->
 
 ### Create the Store → Freezer relationship
@@ -202,8 +191,6 @@ This is the step that makes `Freezer` different from `Store` and `Customer`: the
 
     > ✅ Expected result: a `has` relationship (`Store` → `Freezer`, one-to-many) is visible on the canvas and appears in `Store`'s **Configure > Relationships** section.
 
-*Adapted from: [Ontology tutorial part 2 — Create Store operates Freezer](https://learn.microsoft.com/fabric/iq/ontology/tutorial-2-enrich-ontology#create-store-operates-freezer) (same pattern; we name the relationship `has` instead of `operates`)*
-
 ### Create the Customer → Store relationship
 
 40. **Select** **Home**. **Select** the `Customer` entity type card, then **select** **Add relationship**.
@@ -222,8 +209,6 @@ This is the step that makes `Freezer` different from `Store` and `Customer`: the
 
     > ✅ Expected result: a `ShopsAt` relationship (`Customer` → `Store`, many-to-one) is visible on the canvas.
 
-*Adapted from: [Relationship types in ontology (preview) — Create relationship type](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-relationship-types#create-relationship-type), [Ontology tutorial part 1 — Create relationship types (mismatched key column example)](https://learn.microsoft.com/fabric/iq/ontology/tutorial-1-create-ontology?pivots=onelake#create-relationship-types)*
-
 ### Open the graph view and confirm everything renders
 
 46. **Select** the `Freezer` entity type, then **select** **View Entity Type details**, then **select** the **Instances** tab.
@@ -240,15 +225,13 @@ This is the step that makes `Freezer` different from `Store` and `Customer`: the
 
 49. To confirm the graph reflects fresh telemetry (not just the snapshot captured when you first bound the data), **go to** the "Fabric IQ" workspace item list and **find** the **Graph** item that was created automatically alongside `ColdChainOntology` (same base name, item type **Graph**).
 
-50. **Click** **...** next to that Graph item and **select** **Schedule**.
+50. **Click** **...** next to that Graph item and **select** **Refresh now**.
 
 51. **Select** **Refresh now**.
 
     > ✅ Expected result: after the refresh completes, return to the `Freezer` instance from Step 47 — the `TemperatureC` value and its timestamp should have advanced to reflect a more recent event from the still-running generator.
 
     > ⚠️ **Set expectations correctly here:** the ontology graph is **not** a literal live-streaming view. New rows in a bound source (like new telemetry events) only appear in the graph after a manual or scheduled refresh — this is documented, expected preview behavior, not something broken in your setup.
-
-*Adapted from: [Entity type details in ontology (preview) — Access entity type details, Open graph view, Refresh the graph model](https://learn.microsoft.com/fabric/iq/ontology/how-to-view-entity-type-details)*. See also the community reference labs [23 – Build an ontology manually](https://microsoftlearning.github.io/mslearn-fabric/Instructions/Labs/23-build-ontology-manually.html) and [27 – Visualize an ontology](https://microsoftlearning.github.io/mslearn-fabric/Instructions/Labs/27-visualize-ontology.html) for an alternative walkthrough of this same graph-view experience.
 
 <details>
 <summary>Troubleshooting: the live property (TemperatureC) isn't updating</summary>

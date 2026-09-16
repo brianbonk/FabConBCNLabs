@@ -37,12 +37,6 @@ Confirm your environment matches this state before starting:
 
 1. **Open** the **ColdChainDataAgent** item in the "Fabric IQ" workspace and **open** its chat/test pane.
 
-   ![Step 1](../../assets/screenshots/lab-05/step-01.png)
-
-   > ✅ Expected result: the chat pane opens, ready to accept a natural-language question.
-
-   *Adapted from: [Ontology tutorial part 4: Consume ontology from agents](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent)*
-
 2. **Type** a deliberately out-of-scope question — one that names a property or entity `ColdChainOntology`
    never defined, for example: `What is the warranty expiration date on Freezer F-1042's compressor?` (no
    warranty property exists anywhere in the ontology) — and **send** it.
@@ -73,19 +67,13 @@ Confirm your environment matches this state before starting:
    entry where the `Freezer running warm` rule fired. **Note** the specific `Freezer` instance (and its
    `Store`) named in that alert.
 
-   ![Step 3](../../assets/screenshots/lab-05/step-03.png)
-
    > ✅ Expected result: the history entry names a specific `Freezer` entity instance, a timestamp, and the
    > `TemperatureC` value that satisfied the rule's condition — not a generic "something is wrong"
    > message.
 
-   *Adapted from: [Create and configure operations agents — rule conditions](https://learn.microsoft.com/fabric/real-time-intelligence/operations-agent#understand-operations-agent-rules)*
-
 4. **Open** `ColdChainOntology`'s graph view, **locate** that same `Freezer` entity instance, and
    **confirm** its current `TemperatureC` and `DoorOpen` property values, plus its `Store —has—> Freezer`
    relationship back to the store named in the alert.
-
-   ![Step 4](../../assets/screenshots/lab-05/step-04.png)
 
    > ✅ Expected result: the entity instance in the graph shows property values consistent with the alert,
    > and its relationship path resolves back to a real `Store` (and, through it, a real `Customer`) — this
@@ -98,7 +86,7 @@ Confirm your environment matches this state before starting:
    ```kql
    FreezerTelemetryEnriched
    | where FreezerId == "<FreezerId from Step 3>"
-   | order by EventTimestamp desc
+   | order by Timestamp desc
    | take 20
    ```
 
@@ -117,8 +105,6 @@ Confirm your environment matches this state before starting:
    activation from the History tab and repeat from Step 3.
    </details>
 
-   *Adapted from: [Create and configure operations agents — rule conditions](https://learn.microsoft.com/fabric/real-time-intelligence/operations-agent#understand-operations-agent-rules)*
-
 6. **Return** to `ColdChainOperationsAgent`'s rule list, **open** the `Freezer running warm` rule, and
    **use** the **Copy code** (or equivalent "view query") option to inspect the actual condition it
    evaluates.
@@ -129,8 +115,6 @@ Confirm your environment matches this state before starting:
    > property and a threshold — not a hidden setting you have to infer from behavior. Compare it against
    > what you just saw in Steps 4 and 5: does the threshold in the rule match what actually happened in
    > the data?
-
-   *Adapted from: [Create and configure operations agents — rule conditions](https://learn.microsoft.com/fabric/real-time-intelligence/operations-agent#understand-operations-agent-rules)*
 
 7. **Discuss** as a group (no new UI actions this step): if a compliance or audit team asked you to
    justify why this specific alert fired and why the action taken in response was appropriate, what would

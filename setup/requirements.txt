@@ -13,6 +13,16 @@
 ms-fabric-cli>=1.0.0
 pyyaml>=6.0
 
+# No local Kusto dependency is needed to apply
+# artifacts/Eventhouse/ColdChainKQLDB.kql -- provision_fabric_iq.py's
+# run_kql_schema() runs it server-side via a throwaway Fabric notebook (`fab
+# import` + `fab job run`, both reusing the existing `fab auth login`
+# session), not from this laptop. An earlier version called Kusto directly
+# via the azure-kusto-data SDK, which needed its own separate interactive
+# sign-in; confirmed live that running from a notebook instead avoids that
+# entirely (notebookutils.credentials.getToken("kusto") gives the notebook a
+# trusted-execution token for free). See run_kql_schema()'s docstring.
+
 # azure-eventhub is required ONLY for Module 02's lab, to run
 # artifacts/generator/freezer_telemetry_generator.py (Fabric Eventstream's
 # custom-endpoint source is Event Hubs-compatible SAS/AMQP, not a plain HTTPS

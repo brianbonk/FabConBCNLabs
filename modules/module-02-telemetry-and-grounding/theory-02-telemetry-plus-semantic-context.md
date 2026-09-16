@@ -108,9 +108,10 @@ every freezer, right now, with full business context attached?" That's an aggreg
 `Model`, `Capacity`, `StoreName`, and `Region`. An update policy could enrich each row as it lands, but it
 has no clean way to also express "and only keep the latest one per freezer" — that collapsing step is
 exactly what materialized views exist for. The actual KQL that defines this view lives at
-[`artifacts/Eventhouse/ColdChainKQLDB.kql`](../../artifacts/Eventhouse/ColdChainKQLDB.kql); the lab runs it
-as-is rather than having you author it from scratch, since Module 03 is where the workshop's hands-on KQL
-and ontology authoring time is spent.
+[`artifacts/Eventhouse/ColdChainKQLDB.kql`](../../artifacts/Eventhouse/ColdChainKQLDB.kql);
+`provision_fabric_iq.py` applies it automatically during Module 00 setup, and Lab 02 walks through reading
+and confirming it rather than having you author it from scratch, since Module 03 is where the workshop's
+hands-on KQL and ontology authoring time is spent.
 
 > 🎤 Facilitator note: if someone asks "why not both?" — that's a fair question. Real systems often chain
 > them: an update policy does cheap per-row cleanup into a staging table, and a materialized view

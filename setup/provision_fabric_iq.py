@@ -3,7 +3,7 @@
 provision_fabric_iq.py -- Fabric IQ workshop environment provisioner.
 
 Creates a "Fabric IQ" Fabric workspace pinned to a non-trial capacity, and
-imports the four pre-built items (Lakehouse, Eventhouse, Eventstream,
+provisions the five items (Lakehouse, Eventhouse, KQL database, Eventstream,
 Notebook) listed in manifest.yaml, via the Fabric CLI (`fab`).
 
 WHAT THIS SCRIPT DOES:
@@ -15,14 +15,31 @@ WHAT THIS SCRIPT DOES:
     4. Creates (or reuses) a "Fabric IQ" workspace pinned to that capacity.
     5. Resolves where the `artifacts/` folder lives (local checkout, or a
        fresh `git clone` if this script was handed out standalone).
-    6. Provisions the Lakehouse, Eventhouse, Eventstream, and Notebook items,
-       in that dependency order, from manifest.yaml. The Lakehouse is
-       created via `fab mkdir` + `fab cp` (the sample CSVs); the other three
-       are `fab import`'d from a pre-captured item-definition folder --
-       `fab export`/`fab import` do not support the Lakehouse item type at
-       all, see artifacts/Lakehouse/HOW-TO-EXPORT.md.
-    7. Verifies the workspace now contains all four expected items.
-    8. Prints a summary with a deep link into the workspace and a pointer to
+    6. Provisions the Lakehouse, Eventhouse, KQL database, Eventstream, and
+       Notebook items, in that dependency order, from manifest.yaml. The
+       Lakehouse (with sample CSVs) and the Eventhouse (bare) are created via
+       `fab mkdir` -- `fab export`/`fab import` do not support the Lakehouse
+       item type at all (see artifacts/Lakehouse/HOW-TO-EXPORT.md), and an
+       Eventhouse's own item-definition import was tried and abandoned (see
+       artifacts/Eventhouse/HOW-TO-EXPORT.md). The KQL database is
+       `fab import`'d from a minimal, hand-built definition and paired with
+       deleting the Eventhouse's auto-created default database, since that
+       default always takes the Eventhouse's own name and can't be renamed
+       via `fab` -- see create_kql_database_item(). The Eventstream is
+       `fab import`'d from a pre-captured item-definition folder.
+    7. Runs artifacts/Eventhouse/ColdChainKQLDB.kql against the live
+       ColdChainKQLDB database -- creates FreezerTelemetryRaw, StoresDim,
+       FreezersDim (seeded), and the FreezerTelemetryEnriched materialized
+       view. Does this by importing a small throwaway notebook that executes
+       the script server-side (via `fab job run`) and deleting it again --
+       `fab` itself has no command that can run a `.kql` script directly, and
+       calling Kusto from this laptop would need its own separate
+       interactive sign-in; running it from a notebook instead reuses the
+       same `fab auth login` session already established in step 2, no
+       extra sign-in needed. Skip with --skip-kql-schema. See
+       run_kql_schema().
+    8. Verifies the workspace now contains all five expected items.
+    9. Prints a summary with a deep link into the workspace and a pointer to
        modules/module-00-welcome-and-setup/lab-00-environment-setup-and-verify.md.
 
 WHAT THIS SCRIPT DELIBERATELY DOES NOT DO:
@@ -34,7 +51,10 @@ WHAT THIS SCRIPT DELIBERATELY DOES NOT DO:
       notebook item does not execute it; running it (and watching the three
       Delta tables land) is an explicit, visible step in the lab guides
       instead of something that happens invisibly before attendees ever see
-      the item.
+      the item. (It DOES run the KQL schema script -- see step 7 above; the
+      asymmetry is that a notebook run is a deliberate, visible teaching
+      moment, while the KQL schema is just prerequisite plumbing nobody
+      needs to watch happen.)
     - It does NOT configure the Eventstream's custom-endpoint connection
       string into the telemetry generator. That connection string is only
       obtainable from the Fabric portal *after* the Eventstream item exists
@@ -46,6 +66,7 @@ USAGE:
     python provision_fabric_iq.py --dry-run                # preview only, no changes
     python provision_fabric_iq.py --non-interactive --capacity "My Capacity" --workspace-name "Fabric IQ"
     python provision_fabric_iq.py --force                  # reuse/overwrite existing workspace+items
+    python provision_fabric_iq.py --skip-kql-schema        # skip the KQL schema step entirely
 
 See setup/README.md for the full flag reference and troubleshooting guide.
 """
@@ -84,6 +105,70 @@ REPO_SUBDIR_TO_FABRICIQ = "FabricIQ"  # FabricIQ/ lives at this path inside the 
 PREREQUISITES_PATH = "prerequisites/PREREQUISITES.md"
 LAB00_PATH = "modules/module-00-welcome-and-setup/lab-00-environment-setup-and-verify.md"
 
+# The KQL database's schema is a single, fixed, tightly-coupled pairing (one
+# database, one script) -- not manifest-driven like the five workspace items,
+# since there's only ever one of these in this workshop. See run_kql_schema().
+KQL_DATABASE_NAME = "ColdChainKQLDB"
+KQL_SCHEMA_SCRIPT_PATH = "artifacts/Eventhouse/ColdChainKQLDB.kql"
+# Throwaway notebook name run_kql_schema() imports, runs, then deletes --
+# leading underscore keeps it sorted away from the five real workshop items
+# in the portal's item list, in the unlikely event a run is interrupted
+# before cleanup.
+KQL_RUNNER_NOTEBOOK_NAME = "_ApplyKqlSchema"
+
+# Executed server-side, inside a throwaway Fabric notebook -- NOT run
+# locally. `notebookutils.credentials.getToken("kusto")` gives the notebook
+# a trusted-execution Kusto-audience token for free, no interactive sign-in
+# (confirmed live: this is what makes running from a notebook avoid the
+# second device-code login a local azure-kusto-data call would need).
+# Calls Kusto's `.execute database script` control command via a direct
+# `requests` POST to the cluster's own `/v1/rest/mgmt` endpoint rather than
+# using the azure-kusto-data SDK -- confirmed live that the SDK is NOT
+# usable inside a Fabric notebook as of this writing: Fabric's runtime has
+# already imported an older `azure-core` by the time user code runs, and
+# `pip install -U` inside the same kernel session doesn't help (Python's
+# module cache keeps serving the already-imported old version, not the
+# upgraded one on disk). __CLUSTER_URI__/__DATABASE_NAME__/__KQL_SCRIPT_JSON__
+# are substituted by run_kql_schema() before import.
+KQL_RUNNER_NOTEBOOK_TEMPLATE = """# Fabric notebook source
+
+# METADATA ********************
+
+# META {
+# META   "kernel_info": {
+# META     "name": "synapse_pyspark"
+# META   }
+# META }
+
+# CELL ********************
+
+import requests
+
+CLUSTER_URI = "__CLUSTER_URI__"
+DATABASE = "__DATABASE_NAME__"
+SCRIPT = __KQL_SCRIPT_JSON__
+
+token = notebookutils.credentials.getToken("kusto")
+command = ".execute database script with (ContinueOnErrors=false) <|\\n" + SCRIPT
+
+resp = requests.post(
+    f"{CLUSTER_URI}/v1/rest/mgmt",
+    headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+    json={"db": DATABASE, "csl": command},
+    timeout=120,
+)
+if resp.status_code != 200:
+    raise RuntimeError(f"KQL script execution failed: {resp.status_code} {resp.text[:1000]}")
+print("KQL schema applied successfully.")
+
+# METADATA ********************
+
+# META {
+# META   "language": "python",
+# META   "language_group": "synapse_pyspark"
+# META }
+"""
+
 # Keywords used to flag a capacity as a trial SKU. `fab -c "ls .capacities -l"`
 # output format has not been verified against a live tenant as part of this
 # authoring pass (no tenant was available) -- see setup/README.md's
@@ -110,14 +195,18 @@ class ProvisioningError(Exception):
 class ManifestItem:
     name: str
     type: str
-    # "import" (fab import -i <path>), "create" (fab mkdir + fab cp), or
-    # "notebook_source" (fab import -i <source_py, placeholder-substituted>)
+    # "import" (fab import -i <path>), "create" (fab mkdir + optional fab cp),
+    # "notebook_source" (fab import -i <source_py, placeholder-substituted>),
+    # or "kql_database_source" (fab import -i <path, placeholder-substituted>,
+    # then delete the Eventhouse's auto-created default database)
     mode: str = "import"
-    path: Optional[str] = None  # mode: import only
-    sample_data_dir: Optional[str] = None  # mode: create only
-    sample_data_dest: Optional[str] = None  # mode: create only
+    path: Optional[str] = None  # mode: import and kql_database_source
+    sample_data_dir: Optional[str] = None  # mode: create only, optional
+    sample_data_dest: Optional[str] = None  # mode: create only, if sample_data_dir set
     source_py: Optional[str] = None  # mode: notebook_source only
     default_lakehouse: Optional[str] = None  # mode: notebook_source only
+    parent_eventhouse: Optional[str] = None  # mode: kql_database_source only
+    parent_kql_database: Optional[str] = None  # mode: eventstream_source only
 
 
 # =============================================================================
@@ -509,12 +598,14 @@ def load_manifest(artifact_root: Path) -> list[ManifestItem]:
             sample_data_dest=i.get("sample_data_dest"),
             source_py=i.get("source_py"),
             default_lakehouse=i.get("default_lakehouse"),
+            parent_eventhouse=i.get("parent_eventhouse"),
+            parent_kql_database=i.get("parent_kql_database"),
         )
         for i in items
     ]
 
 
-def create_lakehouse_item(
+def create_via_mkdir_item(
     workspace_path: str,
     item: ManifestItem,
     artifact_root: Path,
@@ -522,13 +613,20 @@ def create_lakehouse_item(
     dry_run: bool,
     force: bool,
 ) -> tuple[bool, str]:
-    """Create a `mode: create` item (currently just the Lakehouse) via
-    `fab mkdir`, then seed it with local files via `fab cp` -- one call per
-    file, since local-to-OneLake `cp` doesn't support directories.
+    """Create a `mode: create` item via `fab mkdir`, then (if
+    `sample_data_dir` is set) seed it with local files via `fab cp` -- one
+    call per file, since local-to-OneLake `cp` doesn't support directories.
+    With no `sample_data_dir`, this is just a bare `mkdir` (e.g. Eventhouse).
 
-    This exists because `fab export`/`fab import` do not support the
-    Lakehouse item type at all (it's a container object, not a
-    definition-based item) -- see artifacts/Lakehouse/HOW-TO-EXPORT.md.
+    Used for:
+    - Lakehouse (with sample data): `fab export`/`fab import` do not support
+      the Lakehouse item type at all -- see
+      artifacts/Lakehouse/HOW-TO-EXPORT.md.
+    - Eventhouse (bare, no sample data): confirmed live that `fab mkdir`
+      works cleanly for a bare Eventhouse, and is simpler and more reliable
+      than `fab import`-ing a hand-built item-definition -- see
+      artifacts/Eventhouse/HOW-TO-EXPORT.md and create_kql_database_item()
+      below for why an import-based Eventhouse definition was abandoned.
     """
     target = f"{workspace_path}/{item.name}.{item.type}"
 
@@ -606,6 +704,17 @@ def create_notebook_item(
     `dependencies.lakehouse` metadata block Fabric itself writes when you
     attach a Lakehouse via the portal), removing the manual "Add data items"
     step entirely.
+
+    The `fab import` call here always passes `-f`, independent of this
+    script's own `--force` flag -- confirmed live (reproduced directly) that
+    a plain `fab import` of this notebook, even for a brand-new item name
+    that doesn't already exist, hangs indefinitely in an interactive
+    terminal and fails with a generic, unhelpful `"UnexpectedError"` under
+    `--output_format json` -- the same class of confirmation-prompt issue
+    already worked around with `-f` in create_kql_database_item() and
+    create_eventstream_item(), just missed here originally since it's only
+    reproducible without `--force` (Lab 00's documented command has no
+    flags at all).
     """
     target = f"{workspace_path}/{item.name}.{item.type}"
     source_path = artifact_root / item.source_py
@@ -631,10 +740,172 @@ def create_notebook_item(
     tmp_dir = Path(tempfile.mkdtemp(prefix="fabric-iq-notebook-"))
     try:
         (tmp_dir / "notebook-content.py").write_text(content, encoding="utf-8")
-        cmd = ["import", target, "-i", str(tmp_dir), "--format", ".py"]
-        if force:
-            cmd.append("-f")
+        cmd = ["import", target, "-i", str(tmp_dir), "--format", ".py", "-f"]
         result = fab(cmd, dry_run=dry_run)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    if dry_run:
+        return True, "dry-run"
+    if result.returncode == 0:
+        return True, "imported"
+    return False, (result.stderr or result.stdout).strip()
+
+
+def create_kql_database_item(
+    workspace_path: str,
+    item: ManifestItem,
+    artifact_root: Path,
+    *,
+    dry_run: bool,
+    force: bool,
+) -> tuple[bool, str]:
+    """Create a `mode: kql_database_source` item: the KQL database attached
+    to an Eventhouse.
+
+    WHY THIS EXISTS (all confirmed live against a real tenant): creating an
+    Eventhouse via `fab mkdir` auto-provisions exactly one default KQL
+    database, and that database's name always matches the Eventhouse's own
+    name (e.g. Eventhouse "ColdChainEventhouse" gets a database also named
+    "ColdChainEventhouse", not "ColdChainKQLDB"). There is no `fab` command
+    to rename it afterward -- `fab mv`/`fab cp` explicitly exclude
+    eventhouse/kql_database from their supported item types (see the
+    installed `fabric_cli` package's own
+    `core/fab_config/command_support.yaml`). `fab export`/`fab get` also do
+    not work against a live KQL database item -- both fail with a generic,
+    unhelpful "UnexpectedError" -- so a real tenant-verified export of this
+    item type isn't obtainable either; see
+    artifacts/Eventhouse/HOW-TO-EXPORT.md.
+
+    So this creates a SECOND, correctly-named KQL database via `fab import`
+    (which DOES support kql_database, unlike mv/cp/mkdir/get) from a minimal,
+    hand-built (not fab-exported) definition folder, with `item.path`'s
+    `.platform`/`DatabaseProperties.json` files' `__EVENTHOUSE_ID__`
+    placeholder substituted with the real Eventhouse item ID (resolved via
+    `item.parent_eventhouse`). It then deletes the auto-created default
+    database (`fab rm` IS supported for it), so the Eventhouse ends up with
+    exactly one, correctly-named database.
+
+    The `fab import` call here always passes `-f`, regardless of this
+    script's own `--force` flag: confirmed live that a plain `fab import`
+    of this hand-built definition prompts an interactive "Are you sure?"
+    confirmation (unrelated to whether the item already exists) that would
+    otherwise hang a non-interactive run forever.
+    """
+    if not item.parent_eventhouse:
+        return False, "manifest.yaml error: kql_database_source item has no parent_eventhouse set"
+
+    source_dir = artifact_root / item.path
+    if not dry_run and not source_dir.exists():
+        return False, f"Source definition not found: {source_dir}"
+
+    eventhouse_target = f"{workspace_path}/{item.parent_eventhouse}.Eventhouse"
+    eh_result = fab(["get", eventhouse_target, "-q", "id"], dry_run=dry_run, allow_dry_run_execute=True)
+    eventhouse_id = eh_result.stdout.strip() if eh_result.returncode == 0 else ""
+    if not dry_run and not eventhouse_id:
+        return False, (
+            f"Could not resolve item ID of parent Eventhouse '{item.parent_eventhouse}' "
+            "(it must be provisioned earlier in manifest.yaml's item order)"
+        )
+
+    target = f"{workspace_path}/{item.name}.{item.type}"
+    tmp_dir = Path(tempfile.mkdtemp(prefix="fabric-iq-kqldb-"))
+    try:
+        for src_file in sorted(source_dir.iterdir()) if source_dir.exists() else []:
+            if not src_file.is_file():
+                continue
+            content = src_file.read_text(encoding="utf-8")
+            content = content.replace("__EVENTHOUSE_ID__", eventhouse_id or "__EVENTHOUSE_ID__")
+            (tmp_dir / src_file.name).write_text(content, encoding="utf-8")
+
+        result = fab(["import", target, "-i", str(tmp_dir), "-f"], dry_run=dry_run)
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    if dry_run:
+        return True, "dry-run"
+    if result.returncode != 0:
+        return False, (result.stderr or result.stdout).strip()
+
+    # Best-effort cleanup of the auto-created default database (always named
+    # the same as the Eventhouse -- see docstring above). Not fatal if this
+    # fails (e.g. it was already removed by a prior run): the
+    # correctly-named database above is what matters, and a leftover
+    # default-named one is harmless clutter, not broken state.
+    default_db_target = f"{workspace_path}/{item.parent_eventhouse}.KQLDatabase"
+    fab_c(f'rm "{default_db_target}" -f')
+
+    return True, "imported, default database removed"
+
+
+def create_eventstream_item(
+    workspace_path: str,
+    item: ManifestItem,
+    artifact_root: Path,
+    *,
+    dry_run: bool,
+    force: bool,
+) -> tuple[bool, str]:
+    """Create a `mode: eventstream_source` item (the Eventstream) by
+    `fab import`-ing the checked-in definition folder, with
+    `__WORKSPACE_ID__`/`__KQLDATABASE_ID__` placeholders substituted for the
+    real current workspace ID and `item.parent_kql_database`'s real item ID.
+
+    WHY THIS EXISTS: the checked-in `eventstream.json`'s Eventhouse
+    destination originally hardcoded a `workspaceId`/`itemId` pointing at the
+    presenter's own dev-tenant Eventhouse (wherever it was hand-built).
+    Importing it as-is against any other workspace fails live with:
+        EventStreamBadWebRequest: "Cross-workspace destination(s) found:
+        Eventhouse in the Eventstream. Please ensure all Eventstream
+        destinations belong to the current workspace"
+    Confirmed live that `itemId` specifically must be the KQL DATABASE's own
+    item ID, not the Eventhouse container's -- passing the Eventhouse's ID
+    instead fails with a different, more specific error:
+        EventStreamBadWebRequest: "Unable to extract cluster URL from the
+        Eventhouse KQL database item ID <eventhouse-id>. Please make sure
+        the Eventhouse destination is properly configured."
+    This substitutes real IDs in at import time, the same pattern
+    create_notebook_item() already uses for
+    `__LAKEHOUSE_ID__`/`__WORKSPACE_ID__`.
+
+    Also confirmed live that a plain `fab import` of this checked-in
+    definition (without `-f`) fails with a generic, unhelpful
+    "UnexpectedError" -- the CLI apparently can't render its usual
+    interactive confirmation prompt when `--output_format json` is set, and
+    falls back to a useless error instead of just proceeding or asking. This
+    call always passes `-f`, independent of this script's own `--force`
+    flag, to avoid that.
+    """
+    if not item.parent_kql_database:
+        return False, "manifest.yaml error: eventstream_source item has no parent_kql_database set"
+
+    source_dir = artifact_root / item.path
+    if not dry_run and not source_dir.exists():
+        return False, f"Source definition not found: {source_dir}"
+
+    kqldb_target = f"{workspace_path}/{item.parent_kql_database}.KQLDatabase"
+    ws_result = fab(["get", workspace_path, "-q", "id"], dry_run=dry_run, allow_dry_run_execute=True)
+    kqldb_result = fab(["get", kqldb_target, "-q", "id"], dry_run=dry_run, allow_dry_run_execute=True)
+    workspace_id = ws_result.stdout.strip() if ws_result.returncode == 0 else ""
+    kqldb_id = kqldb_result.stdout.strip() if kqldb_result.returncode == 0 else ""
+    if not dry_run and (not workspace_id or not kqldb_id):
+        return False, (
+            f"Could not resolve IDs to bind destination KQL database '{item.parent_kql_database}' "
+            "(it must be provisioned earlier in manifest.yaml's item order)"
+        )
+
+    target = f"{workspace_path}/{item.name}.{item.type}"
+    tmp_dir = Path(tempfile.mkdtemp(prefix="fabric-iq-eventstream-"))
+    try:
+        for src_file in sorted(source_dir.iterdir()) if source_dir.exists() else []:
+            if not src_file.is_file():
+                continue
+            content = src_file.read_text(encoding="utf-8")
+            content = content.replace("__WORKSPACE_ID__", workspace_id or "__WORKSPACE_ID__")
+            content = content.replace("__KQLDATABASE_ID__", kqldb_id or "__KQLDATABASE_ID__")
+            (tmp_dir / src_file.name).write_text(content, encoding="utf-8")
+
+        result = fab(["import", target, "-i", str(tmp_dir), "-f"], dry_run=dry_run)
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -655,34 +926,40 @@ def import_items(
 ) -> list[tuple[ManifestItem, bool, str]]:
     """Provision each manifest item in manifest order.
 
-    Three modes, per item:
-    - `mode: import` (Eventhouse, Eventstream): `fab import ... -f` from a
-      pre-captured, tenant-verified item-definition folder -- these item
-      types' definition JSON shape isn't publicly documented, so it can only
-      come from a real `fab export` against a dev tenant.
-    - `mode: create` (Lakehouse): `fab mkdir` + `fab cp`, since
-      `fab export`/`fab import` don't support the Lakehouse item type at all
-      -- see create_lakehouse_item() above.
+    Five modes, per item:
+    - `mode: import`: `fab import ... -f` from a pre-captured,
+      tenant-verified item-definition folder with no placeholder
+      substitution needed. Not currently used by any item in manifest.yaml
+      (every item needs either no definition at all, or per-workspace ID
+      substitution) -- kept as the generic fallback below for any future
+      item type that doesn't need substitution.
+    - `mode: create` (Lakehouse, Eventhouse): `fab mkdir` + optional `fab cp`
+      -- see create_via_mkdir_item() above.
     - `mode: notebook_source` (Notebook): `fab import` directly from the
       checked-in `.py` source, since a Notebook's git-source format IS
       publicly documented and plain-text -- see create_notebook_item() above.
+    - `mode: kql_database_source` (the KQL database inside the Eventhouse):
+      `fab import` a minimal, hand-built definition, then delete the
+      Eventhouse's auto-created default database -- see
+      create_kql_database_item() above.
+    - `mode: eventstream_source` (the Eventstream): `fab import` the
+      checked-in definition with `__WORKSPACE_ID__`/`__KQLDATABASE_ID__`
+      placeholders substituted -- see create_eventstream_item() above.
 
     Preferred path per BUILD_PLAN.md: try `fab deploy` (manifest-driven,
-    wraps fabric-cicd) first for the import-mode items, since it could cover
-    both of them in one shot. That substitution is NOT made here -- it needs
-    a pre-event dry run to confirm `fab deploy`'s coverage of
-    Eventhouse/Eventstream actually matches what this manifest expects.
-    Until that's validated, this script uses the more verbose but
-    individually verifiable per-item `fab import` loop below. If/when
-    `fab deploy` is confirmed to work, that branch can be replaced with a
-    single `fab deploy -f manifest.yaml`-style call; the Lakehouse's
-    `mode: create` and the Notebook's `mode: notebook_source` branches are
-    unaffected either way.
+    wraps fabric-cicd) first for import-mode items, since it could cover
+    them in one shot. That substitution is NOT made here -- it needs
+    a pre-event dry run to confirm `fab deploy`'s coverage actually matches
+    what this manifest expects. Until that's validated, this script uses the
+    more verbose but individually verifiable per-item `fab import` loop
+    below. If/when `fab deploy` is confirmed to work, that branch can be
+    replaced with a single `fab deploy -f manifest.yaml`-style call; the
+    other modes are unaffected either way.
     """
     results: list[tuple[ManifestItem, bool, str]] = []
     for item in items:
         if item.mode == "create":
-            ok, detail = create_lakehouse_item(
+            ok, detail = create_via_mkdir_item(
                 workspace_path, item, artifact_root, dry_run=dry_run, force=force
             )
             results.append((item, ok, detail))
@@ -695,15 +972,32 @@ def import_items(
             results.append((item, ok, detail))
             continue
 
+        if item.mode == "kql_database_source":
+            ok, detail = create_kql_database_item(
+                workspace_path, item, artifact_root, dry_run=dry_run, force=force
+            )
+            results.append((item, ok, detail))
+            continue
+
+        if item.mode == "eventstream_source":
+            ok, detail = create_eventstream_item(
+                workspace_path, item, artifact_root, dry_run=dry_run, force=force
+            )
+            results.append((item, ok, detail))
+            continue
+
         source_path = artifact_root / item.path
         if not dry_run and not source_path.exists():
             results.append((item, False, f"Source path not found: {source_path}"))
             continue
 
         target = f"{workspace_path}/{item.name}.{item.type}"
-        cmd = ["import", target, "-i", str(source_path)]
-        if force:
-            cmd.append("-f")
+        # Always -f, independent of this script's own --force flag -- see
+        # create_notebook_item()'s docstring for why: a plain `fab import`
+        # (even for a brand-new item) can hang or fail with a generic
+        # "UnexpectedError", confirmed live for every other `fab import`
+        # call site in this file.
+        cmd = ["import", target, "-i", str(source_path), "-f"]
         result = fab(cmd, dry_run=dry_run)
         if dry_run:
             results.append((item, True, "dry-run"))
@@ -717,7 +1011,100 @@ def import_items(
 
 
 # =============================================================================
-# Step 7: Verification
+# Step 7: Run the KQL schema
+# =============================================================================
+
+
+def run_kql_schema(workspace_path: str, artifact_root: Path, *, dry_run: bool) -> tuple[bool, str]:
+    """Run artifacts/Eventhouse/ColdChainKQLDB.kql against the live
+    ColdChainKQLDB database, by importing a small throwaway notebook
+    (KQL_RUNNER_NOTEBOOK_TEMPLATE) that executes it server-side via Kusto's
+    `.execute database script` control command, running it with `fab job
+    run`, then deleting that notebook again.
+
+    WHY A NOTEBOOK RATHER THAN CALLING KUSTO DIRECTLY FROM THIS LAPTOP: an
+    earlier version of this function used the azure-kusto-data SDK locally,
+    which needed its own separate interactive device-code sign-in --
+    independent of (and confusing alongside) `fab auth login`'s session.
+    Running the same logic FROM a Fabric notebook instead avoids that
+    entirely: confirmed live that `notebookutils.credentials.getToken
+    ("kusto")` gives the notebook a trusted-execution Kusto-audience token
+    for free, no interactive prompt at all -- because the notebook runs
+    server-side, inside Fabric, under `fab job run`'s already-established
+    `fab auth login` session. This function now only needs `fab import` +
+    `fab job run` (both already using that session) -- no local Kusto
+    dependency, and no second sign-in.
+
+    Confirmed live end-to-end, via the actual generated notebook: this
+    created FreezerTelemetryRaw (with its docstring), StoresDim, FreezersDim
+    (seeded), and the FreezerTelemetryEnriched materialized view (empty but
+    queryable, as expected before telemetry flows) -- and confirmed
+    idempotent-safe on a second run.
+
+    `fab job run` is used WITHOUT `--timeout` -- confirmed live that passing
+    it crashes client-side in fab 0.1.10 (`'<' not supported between
+    instances of 'int' and 'str'`) even though the job itself runs fine
+    server-side; omitting it, `job run` still blocks synchronously and
+    reports the real completion status.
+    """
+    script_path = artifact_root / KQL_SCHEMA_SCRIPT_PATH
+    if not dry_run and not script_path.exists():
+        return False, f"Script not found: {script_path}"
+
+    kqldb_target = f"{workspace_path}/{KQL_DATABASE_NAME}.KQLDatabase"
+    props_result = fab(["get", kqldb_target, "-q", "properties"], dry_run=dry_run, allow_dry_run_execute=True)
+
+    notebook_target = f"{workspace_path}/{KQL_RUNNER_NOTEBOOK_NAME}.Notebook"
+    if dry_run:
+        print(
+            f"  [dry-run] would run: import+run a throwaway notebook to apply "
+            f"{KQL_SCHEMA_SCRIPT_PATH} against {KQL_DATABASE_NAME}, then delete it"
+        )
+        return True, "dry-run"
+
+    try:
+        # `fab get <path> -q properties` (no --output_format json) prints the
+        # queried value as a bare JSON object directly -- confirmed live --
+        # not wrapped in the {"result": {"data": [...]}} envelope that
+        # --output_format json adds.
+        properties = json.loads(props_result.stdout)
+        query_service_uri = properties["queryServiceUri"]
+    except (json.JSONDecodeError, KeyError, TypeError) as exc:
+        return False, f"Could not resolve {KQL_DATABASE_NAME}'s query URI: {exc}"
+
+    script = script_path.read_text(encoding="utf-8")
+    content = (
+        KQL_RUNNER_NOTEBOOK_TEMPLATE.replace("__CLUSTER_URI__", query_service_uri)
+        .replace("__DATABASE_NAME__", KQL_DATABASE_NAME)
+        .replace("__KQL_SCRIPT_JSON__", json.dumps(script))
+    )
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="fabric-iq-kqlrunner-"))
+    try:
+        (tmp_dir / "notebook-content.py").write_text(content, encoding="utf-8")
+        import_result = fab(["import", notebook_target, "-i", str(tmp_dir), "--format", ".py", "-f"])
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    if import_result.returncode != 0:
+        return False, (
+            f"Could not import KQL runner notebook: "
+            f"{(import_result.stderr or import_result.stdout).strip()}"
+        )
+
+    run_result = fab(["job", "run", notebook_target])
+    # Always clean up the throwaway notebook, whether the run succeeded or
+    # not -- best-effort, not fatal if it fails.
+    fab_c(f'rm "{notebook_target}" -f')
+
+    if run_result.returncode != 0:
+        return False, f"KQL script execution failed: {(run_result.stderr or run_result.stdout).strip()}"
+
+    return True, "schema applied"
+
+
+# =============================================================================
+# Step 8: Verification
 # =============================================================================
 
 
@@ -734,7 +1121,7 @@ def verify_items(workspace_path: str, items: list[ManifestItem], dry_run: bool) 
 
 
 # =============================================================================
-# Step 8: Summary + error mapping
+# Step 9: Summary + error mapping
 # =============================================================================
 
 
@@ -743,6 +1130,7 @@ def print_summary(
     capacity: Capacity,
     import_results: list[tuple[ManifestItem, bool, str]],
     verify_results: list[tuple[str, bool]],
+    kql_result: Optional[tuple[bool, str]],
 ) -> None:
     print("\n" + "=" * 70)
     print("FABRIC IQ PROVISIONING SUMMARY")
@@ -757,6 +1145,17 @@ def print_summary(
     for item, ok, detail in import_results:
         status = "OK" if ok else "FAILED"
         print(f"  [{status}] {item.name}.{item.type}  ({detail})")
+
+    if kql_result is not None:
+        kql_ok, kql_detail = kql_result
+        status = "OK" if kql_ok else "FAILED"
+        print(f"\nKQL schema ({KQL_DATABASE_NAME}):")
+        print(f"  [{status}] {KQL_SCHEMA_SCRIPT_PATH}  ({kql_detail})")
+        if not kql_ok:
+            print(
+                f"  Re-run this script to retry, or run {KQL_SCHEMA_SCRIPT_PATH} manually "
+                f"in a KQL Queryset attached to {KQL_DATABASE_NAME}."
+            )
 
     print("\nPost-import verification (`fab ls <workspace>.Workspace -l`):")
     all_found = True
@@ -776,11 +1175,6 @@ def print_summary(
         )
 
     print(f"\nNext step: {LAB00_PATH}")
-    print(
-        "Reminder -- this script does NOT create the Ontology, Data Agent, or Operations Agent "
-        "items, and does NOT run the 00_LoadReferenceData notebook for you. Both are explicit, "
-        "hands-on lab steps -- see the lab guides under modules/."
-    )
     print("=" * 70)
 
 
@@ -824,7 +1218,12 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--force",
         action="store_true",
-        help="Reuse an existing workspace without prompting, override the trial-capacity warning, and force-overwrite items on import.",
+        help="Reuse an existing workspace without prompting, and override the trial-capacity warning. (Item imports always overwrite -- see setup/README.md.)",
+    )
+    parser.add_argument(
+        "--skip-kql-schema",
+        action="store_true",
+        help="Don't run ColdChainKQLDB.kql against the KQL database.",
     )
     args = parser.parse_args(argv)
 
@@ -837,14 +1236,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
 
     try:
-        print("--- Step 1/7: Preflight checks ---")
+        print("--- Step 1/9: Preflight checks ---")
         check_python_version()
         check_fab_installed(args.dry_run)
 
-        print("\n--- Step 2/7: Authentication ---")
+        print("\n--- Step 2/9: Authentication ---")
         ensure_authenticated(args.dry_run, args.non_interactive)
 
-        print("\n--- Step 3/7: Capacity selection ---")
+        print("\n--- Step 3/9: Capacity selection ---")
         capacities = list_capacities(args.dry_run)
         capacity = pick_capacity(
             capacities,
@@ -853,7 +1252,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             force=args.force,
         )
 
-        print("\n--- Step 4/7: Workspace creation ---")
+        print("\n--- Step 4/9: Workspace creation ---")
         workspace_path = create_or_reuse_workspace(
             args.workspace_name,
             capacity,
@@ -862,12 +1261,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             force=args.force,
         )
 
-        print("\n--- Step 5/7: Resolving artifact source ---")
+        print("\n--- Step 5/9: Resolving artifact source ---")
         artifact_root = resolve_artifact_root(args.dry_run)
         items = load_manifest(artifact_root)
         print(f"Loaded {len(items)} item(s) from manifest.yaml: " + ", ".join(f"{i.name}.{i.type}" for i in items))
 
-        print("\n--- Step 6/7: Provisioning items ---")
+        print("\n--- Step 6/9: Provisioning items ---")
         import_results = import_items(workspace_path, items, artifact_root, dry_run=args.dry_run, force=args.force)
         for item, ok, detail in import_results:
             if not ok:
@@ -875,12 +1274,33 @@ def main(argv: Optional[list[str]] = None) -> int:
                 if "not enabled" in detail.lower() or "preview" in detail.lower() or "tenant setting" in detail.lower():
                     print(f"  HINT: this looks like a tenant preview-setting gap. See {PREREQUISITES_PATH}, section 1.")
 
-        print("\n--- Step 7/7: Verification ---")
+        print("\n--- Step 7/9: KQL schema ---")
+        kqldb_provisioned = any(
+            ok for item, ok, _ in import_results if item.type == "KQLDatabase"
+        )
+        if args.skip_kql_schema:
+            print("  Skipped (--skip-kql-schema).")
+            kql_result = None
+        elif not kqldb_provisioned:
+            print(f"  Skipped: {KQL_DATABASE_NAME} was not provisioned above (see Step 6 warnings).")
+            kql_result = None
+        else:
+            kql_result = run_kql_schema(workspace_path, artifact_root, dry_run=args.dry_run)
+            ok, detail = kql_result
+            if not ok:
+                print(f"  WARNING: failed to run KQL schema: {detail}")
+
+        print("\n--- Step 8/9: Verification ---")
         verify_results = verify_items(workspace_path, items, args.dry_run)
 
-        print_summary(args.workspace_name, capacity, import_results, verify_results)
+        print("\n--- Step 9/9: Summary ---")
+        print_summary(args.workspace_name, capacity, import_results, verify_results, kql_result)
 
-        any_failed = any(not ok for _, ok, _ in import_results) or any(not found for _, found in verify_results)
+        any_failed = (
+            any(not ok for _, ok, _ in import_results)
+            or any(not found for _, found in verify_results)
+            or (kql_result is not None and not kql_result[0])
+        )
         return 1 if (any_failed and not args.dry_run) else 0
 
     except ProvisioningError as exc:

@@ -3,17 +3,20 @@
 **Duration:** 25 minutes
 **Prerequisites:** Module 01 complete. The `Fabric IQ` workspace exists and contains `ColdChainLakehouse`
 (with populated `Customers`, `Stores`, `Freezers` tables), `ColdChainEventhouse` with KQL database
-`ColdChainKQLDB` (containing the empty `FreezerTelemetryRaw` table), and `FreezerTelemetryEventstream`
-(created but not yet configured with a live source). You also need a terminal with Python 3.10+ available
-locally, and this repo cloned so you can reach `artifacts/generator/freezer_telemetry_generator.py` and
+`ColdChainKQLDB` (whose full schema — `FreezerTelemetryRaw`, the seeded `StoresDim`/`FreezersDim`
+dimension tables, and the `FreezerTelemetryEnriched` materialized view — was already applied by
+`provision_fabric_iq.py` in Module 00; `FreezerTelemetryRaw` is empty until this lab's generator runs, and
+`FreezerTelemetryEnriched` is empty until then too), and `FreezerTelemetryEventstream` (created but not yet
+configured with a live source). You also need a terminal with Python 3.10+ available locally, and this repo
+cloned so you can reach `artifacts/generator/freezer_telemetry_generator.py` and
 `artifacts/Eventhouse/ColdChainKQLDB.kql`.
 
 **Learning objectives**
 - Retrieve an Eventstream custom endpoint's connection information from the Fabric portal and wire it into
   an external producer.
 - Observe raw telemetry arriving in `FreezerTelemetryRaw` for the first time.
-- Create the `FreezerTelemetryEnriched` materialized view and confirm it grounds raw readings with store
-  and freezer context.
+- Understand the `FreezerTelemetryEnriched` materialized view — already built for you by Module 00's
+  provisioning script — and confirm it grounds raw readings with store and freezer context.
 
 ## Before you begin
 
@@ -23,6 +26,9 @@ Confirm your environment matches this state before starting:
 - [ ] `ColdChainLakehouse` → `Freezers` and `Stores` tables contain rows (seeded in Module 00/01).
 - [ ] Querying `FreezerTelemetryRaw | take 20` in `ColdChainKQLDB` returns **zero rows** — this is the
       "before" state this lab changes.
+- [ ] `ColdChainKQLDB`'s Explorer pane already shows `FreezerTelemetryEnriched` under **Materialized
+      views** — Module 00's provisioning script creates it up front; this lab explains it and confirms it
+      works, rather than building it from scratch.
 - [ ] You have a terminal open at the root of this cloned repo, with `python3 --version` reporting 3.10 or
       later.
 
@@ -118,10 +124,12 @@ module — watch for trailing spaces or partial copies when circulating. -->
 10. **Switch** back to `FreezerTelemetryEventstream` in the Fabric portal and **click** **Live view** (or
     **refresh** it if you're already there).
 
-11. **Click** the custom endpoint source node and **check** the **Data preview** tab.
+11. **Click** the FreezerTelemetryEventstream node and **check** the **Data preview** tab.
 
     > ✅ Expected result: the data preview shows a live stream of JSON events with `FreezerId`, `StoreId`,
     > `Timestamp`, `TemperatureC`, and `DoorOpen` fields, refreshing every few seconds.
+
+    ![Step 100](../../assets/screenshots/lab-02/step-100.png)
 
     <details>
     <summary>Troubleshooting — no events showing up</summary>
@@ -163,26 +171,45 @@ module — watch for trailing spaces or partial copies when circulating. -->
     *Adapted from: [Digital twin builder RTI tutorial part 2 — "Create an eventhouse" /
     verifying `bus_data_raw`](https://learn.microsoft.com/fabric/real-time-intelligence/digital-twin-builder/tutorial-rti-2-get-streaming-data)*
 
-### Part E — Create the enriched, grounded view
+### Part E — Understand the enriched, grounded view
+
+`FreezerTelemetryEnriched` already exists — `provision_fabric_iq.py` created it, along with the rest of
+`ColdChainKQLDB`'s schema, back in Module 00 (see `run_kql_schema()` in that script, and
+`artifacts/Eventhouse/HOW-TO-EXPORT.md` for why this runs automatically rather than as a manual step).
+This part is about reading and understanding the KQL that defines it, not creating it from scratch —
+Module 03 is where this workshop's hands-on KQL/ontology authoring time is spent.
 
 14. **Open** [`artifacts/Eventhouse/ColdChainKQLDB.kql`](../../artifacts/Eventhouse/ColdChainKQLDB.kql) in
-    a text editor and **copy** its contents.
+    a text editor and **find** the `.create-or-alter materialized-view` block near the bottom (section 3,
+    "ENRICHED MATERIALIZED VIEW").
 
-15. **Paste** the script into a new tab in the `ColdChainKQLDB` KQL Queryset.
+15. **Read** through it alongside this summary of what each piece does:
+    - `lookup kind=leftouter StoresDim on StoreId` — brings in `StoreName`/`Region`/`City` for the store
+      each freezer belongs to.
+    - `lookup kind=leftouter (FreezersDim | project FreezerId, Model, Capacity) on FreezerId` — brings in
+      `Model`/`Capacity`, dropping `FreezersDim`'s own `StoreId` first so it doesn't collide with the one
+      already on the fact table.
+    - `summarize arg_max(Timestamp, *) by FreezerId` — collapses the stream down to exactly one row per
+      freezer: whichever reading has the latest `Timestamp`, across every column.
 
-16. **Click** **Run** to execute the script.
+16. **In the portal**, in the `ColdChainKQLDB` KQL Queryset, **confirm** `FreezerTelemetryEnriched` is
+    listed under **Materialized views** in the Explorer pane, then **run**:
+    ```kql
+    .show materialized-view FreezerTelemetryEnriched
+    ```
 
-    > ✅ Expected result: the script completes without error and creates the `FreezerTelemetryEnriched`
-    > materialized view. **Refresh** the Explorer pane and confirm `FreezerTelemetryEnriched` now appears
-    > under **Materialized views** for `ColdChainKQLDB`.
+    > ✅ Expected result: the command returns one row describing the view — confirming it's real and
+    > already active, not just present in the script you read above.
 
     <details>
     <summary>Troubleshooting</summary>
 
-    If the script errors on the `lookup`/dimension table reference, confirm the `Freezers` and `Stores`
-    dimension data was copied into `ColdChainKQLDB` during setup (Module 00/01) — the materialized view
-    depends on that data being present in the same KQL database, since materialized views can't reach
-    across eventhouses.
+    If `FreezerTelemetryEnriched` isn't listed, or `.show materialized-view` errors "not found", Module
+    00's `provision_fabric_iq.py` run either skipped the KQL schema step (`--skip-kql-schema`) or it
+    failed — check that run's summary output. You can
+    re-run it now: `python3 setup/provision_fabric_iq.py --force` (from the repo root, in your activated
+    venv), or paste `ColdChainKQLDB.kql`'s contents into a new Queryset tab and run it manually — every
+    statement in it is safe to re-run.
     </details>
 
     *Adapted from: this lab's own [`ColdChainKQLDB.kql`](../../artifacts/Eventhouse/ColdChainKQLDB.kql),

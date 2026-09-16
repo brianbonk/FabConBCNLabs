@@ -2,10 +2,15 @@
 // ColdChainKQLDB.kql
 //
 // KQL database schema for the "Fabric IQ" workshop's cold-chain scenario.
-// Run this script section-by-section in a KQL Queryset attached to the
-// ColdChainEventhouse > ColdChainKQLDB database, AFTER the Eventhouse/KQL DB
-// item has been created by hand (see ../Eventhouse/HOW-TO-EXPORT.md), and
-// BEFORE running `fab export` to capture the finished item definition.
+// `setup/provision_fabric_iq.py` runs this whole script automatically, via a
+// throwaway notebook that executes it server-side against Kusto's
+// `.execute database script` control command -- see `run_kql_schema()` in
+// that script. Every `.create` statement below uses an idempotent-safe form
+// (`create-merge` / `create-or-alter` -- NOT `ifnotexists`, which is not
+// valid Kusto syntax as a table-creation modifier) so re-running
+// provisioning doesn't error on an already-seeded database. You can also
+// run it manually, section by section, in a KQL Queryset attached to
+// ColdChainEventhouse > ColdChainKQLDB if you ever need to.
 //
 // This is also a teaching artifact for Module 02 ("Telemetry + semantic
 // context, grounding signals"): it shows the classic RTI pattern of
@@ -35,7 +40,7 @@
 // JSON payload emitted by artifacts/generator/freezer_telemetry_generator.py
 // and the fixed naming contract for this workshop:
 //   { "FreezerId": "...", "StoreId": "...", "Timestamp": "...", "TemperatureC": ..., "DoorOpen": ... }
-.create table FreezerTelemetryRaw (
+.create-merge table FreezerTelemetryRaw (
     FreezerId    : string,
     StoreId      : string,
     Timestamp    : datetime,
@@ -53,7 +58,7 @@
 // of the same name, but defining an explicit mapping makes the contract
 // visible in source control and gives you something concrete to point the
 // Eventstream destination step at if auto-mapping ever needs overriding.
-.create table FreezerTelemetryRaw ingestion json mapping "FreezerTelemetryRawMapping"
+.create-or-alter table FreezerTelemetryRaw ingestion json mapping "FreezerTelemetryRawMapping"
 '['
 '  {"column":"FreezerId",    "path":"$.FreezerId"},'
 '  {"column":"StoreId",      "path":"$.StoreId"},'
@@ -93,14 +98,14 @@
 // Either approach keeps the "single source of truth" for reference data in
 // the Lakehouse, with the KQL DB holding a queryable mirror for `lookup`.
 
-.create table StoresDim (
+.create-merge table StoresDim (
     StoreId   : string,
     StoreName : string,
     Region    : string,
     City      : string
 )
 
-.create table FreezersDim (
+.create-merge table FreezersDim (
     FreezerId   : string,
     StoreId     : string,
     Model       : string,
@@ -165,7 +170,7 @@ datatable (FreezerId: string, StoreId: string, Model: string, Capacity: long, In
 //
 // autoUpdateSchema=true keeps the view from breaking if FreezerTelemetryRaw
 // ever gains new columns (recommended for arg_max(Timestamp, *) views).
-.create materialized-view with (
+.create-or-alter materialized-view with (
         dimensionTables    = dynamic(["StoresDim", "FreezersDim"]),
         autoUpdateSchema   = true,
         docString          = "Latest reading per freezer, enriched with store and freezer attributes. Query this, not FreezerTelemetryRaw, for dashboards, Activator rules, and the Fabric IQ ontology's Freezer entity."

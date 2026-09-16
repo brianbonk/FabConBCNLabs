@@ -112,11 +112,12 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    </details>
 
 5. **Let the script finish.** It creates a "Fabric IQ" workspace and provisions the Lakehouse, Eventhouse,
-   Eventstream, and Notebook items.
+   KQL database, Eventstream, and Notebook items, then applies the KQL database's schema — all using the
+   one sign-in from step 4, no further prompts.
 
-   > ✅ Expected result: a summary block printing `[OK]` for all four items, ending with a deep link into
-   > the workspace. This typically takes a few minutes — while it runs, this is a good moment to skim
-   > ahead to Module 01.
+   > ✅ Expected result: a summary block printing `[OK]` for all five items plus the KQL schema step,
+   > ending with a deep link into the workspace. This typically takes a few minutes — while it runs, this
+   > is a good moment to skim ahead to Module 01.
 
    <details>
    <summary>Troubleshooting — `[FAILED]` or `MISSING` items in the summary</summary>
@@ -263,8 +264,10 @@ fix it within a couple of minutes, don't burn your whole Module 00 slot troubles
 
 At the end of this lab, your "Fabric IQ" workspace should contain:
 - `ColdChainLakehouse` with three populated tables: `Customers`, `Stores`, `Freezers`
-- `ColdChainEventhouse` with a `ColdChainKQLDB` database containing an empty (but queryable)
-  `FreezerTelemetryRaw` table
+- `ColdChainEventhouse` with a `ColdChainKQLDB` database whose full schema is already in place: an empty
+  (but queryable) `FreezerTelemetryRaw` table, seeded `StoresDim`/`FreezersDim` dimension tables, and the
+  `FreezerTelemetryEnriched` materialized view (also empty until telemetry flows in Module 02) — all
+  applied automatically by `provision_fabric_iq.py`'s KQL schema step
 - `FreezerTelemetryEventstream`
 - `00_LoadReferenceData` notebook
 

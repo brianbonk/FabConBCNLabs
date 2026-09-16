@@ -1,0 +1,4 @@
+{
+    "databaseType": "ReadWrite",
+    "parentEventhouseItemId": "__EVENTHOUSE_ID__"
+}

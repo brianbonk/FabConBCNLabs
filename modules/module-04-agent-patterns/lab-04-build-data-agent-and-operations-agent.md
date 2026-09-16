@@ -50,8 +50,6 @@ Confirm your environment matches this state before starting:
 
    > ✅ Expected result: the agent authoring canvas opens once the item finishes provisioning.
 
-   *Adapted from: [Ontology tutorial part 4, "Create data agent with ontology (preview) source," step 1](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent)*
-
 2. **Select** **Add a data source**, **search** for `ColdChainOntology`, **select** it, then **click**
    **Add**.
 
@@ -60,8 +58,6 @@ Confirm your environment matches this state before starting:
    > ✅ Expected result: `ColdChainOntology` now appears as a source in the Explorer pane, with `Customer`,
    > `Store`, and `Freezer` listed as its entity types.
 
-   *Adapted from: [Ontology tutorial part 4, "Create data agent with ontology (preview) source," step 2](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent)*
-
 3. **Select** **Agent instructions** from the ribbon, and at the bottom of the input box **type**
    `Support group by in GQL`. **Close** the Agent instructions tab once the instruction is applied.
 
@@ -69,8 +65,6 @@ Confirm your environment matches this state before starting:
 
    > ✅ Expected result: the instruction is saved automatically — this works around a known aggregation
    > issue and improves answers to questions that group or count across the ontology.
-
-   *Adapted from: [Ontology tutorial part 4, "Provide agent instructions"](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent)*
 
 ### Test the Data Agent with natural-language questions
 
@@ -109,8 +103,6 @@ Confirm your environment matches this state before starting:
    > ✅ Expected result: the response groups freezers by store and references `Store` and `Freezer` by
    > name — notice the response text itself never mentions a table or column name.
 
-   *Adapted from: [Ontology tutorial part 4, "Query agent with natural language"](https://learn.microsoft.com/fabric/iq/ontology/tutorial-4-create-data-agent); question set adapted to the cold-chain scenario, cross-referenced against [mslearn lab 28](https://microsoftlearning.github.io/mslearn-fabric/Instructions/Labs/28-build-data-agent-ontology.html)*
-
 <!-- facilitator: if attendees ask why the agent sometimes phrases an answer slightly differently between
 runs, that's expected LLM-backed variance in phrasing — the grounding (which entities/relationships it
 used) is what should stay consistent, not the exact wording. -->
@@ -125,10 +117,8 @@ used) is what should stay consistent, not the exact wording. -->
 
    > ✅ Expected result: the **Agent setup** page opens for `ColdChainOperationsAgent`.
 
-   *Adapted from: [Create and configure operations agents, "Create an operations agent"](https://learn.microsoft.com/fabric/real-time-intelligence/operations-agent); [Create an operations agent grounded in an ontology, step 1](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent)*
-
 8. On the **Agent setup** page, in the **Agent instructions** box, **type**
-   `Monitor Freezer entities for temperature running warm and notify me when one is found.` Under
+   `Monitor Freezer entities for temperature running warm (above -12 degrees) and notify me on Teams when one is found.` Under
    **Knowledge**, **select** **Add data**, **search** for `ColdChainOntology`, and **select** it.
 
    ![Step 8](../../assets/screenshots/lab-04/step-08.png)
@@ -142,8 +132,6 @@ used) is what should stay consistent, not the exact wording. -->
 
    > ✅ Expected result: `ColdChainOntology` is listed as the agent's knowledge source, with `Freezer`
    > visible as a monitorable entity type alongside `Customer` and `Store`.
-
-   *Adapted from: [Create and configure operations agents, "Configure an operations agent"](https://learn.microsoft.com/fabric/real-time-intelligence/operations-agent); [Create an operations agent grounded in an ontology, step 2](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent)*
 
 9. **Click** **Save**, then **select** **Generate playbook**. **Review** the playbook and **confirm** it
    references the `Freezer` entity type and its `TemperatureC` property by name.
@@ -161,17 +149,13 @@ used) is what should stay consistent, not the exact wording. -->
    > ✅ Expected result: the playbook lists a goal and a rule referencing the `Freezer` entity type and
    > `TemperatureC` property — not the underlying `FreezerTelemetryRaw` KQL table or column.
 
-   *Adapted from: [Create an operations agent grounded in an ontology, step 4](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent)*
-
-10. **Select** **Start** in the toolbar to start the agent.
+10. **Select** **Save** and then **Start** in the toolbar to start the agent.
 
     ![Step 10](../../assets/screenshots/lab-04/step-10.png)
 
     > ✅ Expected result: the agent's status changes to **Running**. By default it can message you in
     > Teams whenever it detects a matching condition — install the **Fabric Operations Agent** Teams app
     > now if you haven't already, so you can actually receive that message later in this lab.
-
-    *Adapted from: [Create an operations agent grounded in an ontology, step 5, and "Receive notifications in Teams"](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent)*
 
 ### Create the Activator Ontology Rule: `Freezer running warm`
 
@@ -184,10 +168,8 @@ used) is what should stay consistent, not the exact wording. -->
     > ✅ Expected result: the **Add rule** panel opens, showing **Details**, **Monitor**, **Conditions**,
     > **Actions**, and **Save location** sections.
 
-    *Adapted from: [Ontology rules, "Create a rule," steps 1–2](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules)*
-
 12. Under **Monitor**, **select** the `Freezer` entity type's `TemperatureC` property. Under
-    **Conditions**, **configure** an **Is above** condition with a threshold of `-12` (°C), and **set** the
+    **Conditions**, **configure** an **Is greater than** condition with a threshold of `-12` (°C), and **set** the
     temporal window so the condition must hold for a **sustained period — at least 5 minutes** — before it
     counts as met, rather than firing on a single reading.
 
@@ -208,9 +190,7 @@ used) is what should stay consistent, not the exact wording. -->
     > while still catching the sustained anomaly (door left open, or compressor fault) the Module 02
     > generator periodically simulates.
 
-    *Adapted from: [Ontology rules, "Create a rule," step 3](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules), cross-referenced with [Create a rule in Fabric Activator, "Define the condition to detect"](https://learn.microsoft.com/fabric/real-time-intelligence/data-activator/activator-create-activators)*
-
-13. Under **Actions**, **choose** either **Send me a Teams message** or **Send me an email** — whichever
+13. Under **Actions**, **choose** either **Message to individuals** or **Email** — whichever
     your tenant supports and you have installed/enabled. **Confirm** the action's message template
     references the freezer and its store by name rather than a bare identifier.
 
@@ -219,8 +199,6 @@ used) is what should stay consistent, not the exact wording. -->
     > ✅ Expected result: an action is attached to the rule. Both Teams and email are valid choices here —
     > pick whichever notification channel is actually set up for your tenant/account; the rule's behavior
     > is otherwise identical either way.
-
-    *Adapted from: [Ontology rules, "Create a rule," step 3](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules); [Create a rule in Fabric Activator, "Define the condition to detect"](https://learn.microsoft.com/fabric/real-time-intelligence/data-activator/activator-create-activators)*
 
 14. Under **Save location**, **leave** the default (a new Fabric Activator item) selected unless your
     facilitator asks you to reuse an existing one, then **select** **Create**. Back in the **Rules** panel,
@@ -231,8 +209,6 @@ used) is what should stay consistent, not the exact wording. -->
     > ✅ Expected result: `Freezer running warm` appears in the Rules panel, enabled, and — per Microsoft's
     > guidance — is backed by a new Fabric Activator item in your workspace that you could open directly
     > for deeper editing if needed.
-
-    *Adapted from: [Ontology rules, "Create a rule," steps 4–5](https://learn.microsoft.com/fabric/iq/ontology/how-to-use-rules)*
 
 ### Wait for the alert and confirm it fires
 
@@ -272,8 +248,6 @@ used) is what should stay consistent, not the exact wording. -->
       [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md) for the Module 04 fallback
       screenshot sequence if the live preview path is misbehaving for the whole room.
     </details>
-
-    *Adapted from: [Create an operations agent grounded in an ontology, "Receive notifications in Teams"](https://learn.microsoft.com/fabric/iq/ontology/how-to-create-operations-agent)*
 
 <!-- facilitator: this step is the one most likely to run long, since it depends on the generator's timer,
 not on attendee action. If the room is close to time and the alert hasn't landed for most people yet, show

@@ -11,30 +11,63 @@
 #         (must match the fixed naming contract used throughout the labs)
 #   type: the Fabric item type suffix used by `fab` (e.g. "Lakehouse",
 #         "Eventhouse", "Eventstream", "Notebook")
-#   mode: "import" (default, omit if not needed), "create", or
-#         "notebook_source".
+#   mode: "import" (default, omit if not needed), "create",
+#         "notebook_source", "kql_database_source", or "eventstream_source".
 #         - import: `fab import ... -i <path>` a pre-captured item-definition
-#           folder. Used for Eventhouse and Eventstream -- their definition
-#           JSON shape isn't publicly documented, so it can only come from a
-#           real `fab export` against a dev tenant.
-#         - create: `fab mkdir` an empty item, then `fab cp` local files into
-#           it. Used for Lakehouse, because `fab export`/`fab import` do not
-#           support the Lakehouse item type at all -- see
-#           artifacts/Lakehouse/HOW-TO-EXPORT.md for why.
+#           folder verbatim, no placeholder substitution. Not currently used
+#           by any item below (every current item needs either no definition
+#           at all or per-workspace ID substitution) -- kept as the generic
+#           fallback for a future item type that doesn't need substitution.
+#         - create: `fab mkdir` an empty item, then (if sample_data_dir is
+#           set) `fab cp` local files into it. Used for Lakehouse (with
+#           sample data) and Eventhouse (bare -- no sample data), because
+#           neither can go through `fab import` reliably: Lakehouse isn't
+#           supported by `fab export`/`fab import` at all (see
+#           artifacts/Lakehouse/HOW-TO-EXPORT.md), and an Eventhouse's own
+#           item-definition export/import was tried and abandoned -- see the
+#           kql_database_source note below.
 #         - notebook_source: `fab import` directly from a checked-in
 #           notebook git-source `.py` file (Fabric's own "# META"/"# CELL"
 #           format) -- no pre-exported folder needed, since that format IS
 #           publicly documented and plain-text. Used for the Notebook -- see
 #           artifacts/Notebooks/HOW-TO-EXPORT.md.
-#   path: (mode: import only) path to the exported item-definition folder,
-#         relative to the repo root -- this is what gets passed to
-#         `fab import ... -i <path>`.
-#   sample_data_dir: (mode: create only) local directory whose files get
-#         `fab cp`'d in, one file per `cp` call (local-to-OneLake copy does
-#         not support directories).
-#   sample_data_dest: (mode: create only) OneLake path, relative to the
-#         item, that each file from sample_data_dir is copied to (e.g.
-#         "Files/SampleData").
+#         - kql_database_source: `fab import` a minimal, hand-built (not
+#           fab-exported) KQL database definition, with a `parent_eventhouse`
+#           placeholder substituted in, then delete the Eventhouse's
+#           auto-created default database. Used for the KQL database inside
+#           the Eventhouse -- confirmed live that creating an Eventhouse via
+#           `fab mkdir` auto-provisions exactly one default KQL database
+#           NAMED THE SAME AS THE EVENTHOUSE (not a name of your choosing),
+#           and that `fab mv`/`fab cp` explicitly do not support renaming
+#           eventhouse/kql_database items (see fabric_cli's own
+#           command_support.yaml) -- so the only way to get a correctly-named
+#           database is to create a second one and delete the default. Also
+#           confirmed live that `fab export`/`fab get` do not work against a
+#           live KQL database item (both fail with a generic, unhelpful
+#           "UnexpectedError"), so a real tenant-verified export of this item
+#           type isn't obtainable right now -- see
+#           artifacts/Eventhouse/HOW-TO-EXPORT.md.
+#         - eventstream_source: `fab import` a checked-in Eventstream
+#           definition with `__WORKSPACE_ID__`/`__KQLDATABASE_ID__`
+#           placeholders substituted in. The checked-in definition's
+#           destination originally hardcoded IDs pointing at the presenter's
+#           own dev-tenant items; importing it as-is against any other
+#           workspace fails live with "Cross-workspace destination(s)
+#           found ...". Confirmed live that the destination's `itemId` must
+#           specifically be the KQL DATABASE's item ID, not the Eventhouse
+#           container's (that fails with a different, more specific error
+#           about being unable to extract a cluster URL) -- see
+#           create_eventstream_item() in provision_fabric_iq.py.
+#   path: (mode: import, kql_database_source, and eventstream_source) path to
+#         the item-definition folder, relative to the repo root -- this is
+#         what gets passed to `fab import ... -i <path>`.
+#   sample_data_dir: (mode: create only, optional) local directory whose
+#         files get `fab cp`'d in, one file per `cp` call (local-to-OneLake
+#         copy does not support directories). Omit for a bare `mkdir` with no
+#         sample data (e.g. Eventhouse).
+#   sample_data_dest: (mode: create only, required if sample_data_dir is set)
+#         OneLake path, relative to the item, that each file from
+#         sample_data_dir is copied to (e.g. "Files/SampleData").
 #   source_py: (mode: notebook_source only) path to the notebook's
 #         git-source `.py` file, relative to the repo root.
 #   default_lakehouse: (mode: notebook_source only) `name` of another item
@@ -43,9 +76,20 @@
 #         `__LAKEHOUSE_ID__`/`__WORKSPACE_ID__` placeholders before import --
 #         this is what binds the notebook's default Lakehouse, with no
 #         manual "Add data items" step needed.
+#   parent_eventhouse: (mode: kql_database_source only) `name` of another
+#         item in this manifest (must be an Eventhouse, provisioned earlier)
+#         whose real item ID gets substituted into the definition folder's
+#         `__EVENTHOUSE_ID__` placeholder before import -- this is what
+#         attaches the KQL database to the right Eventhouse.
+#   parent_kql_database: (mode: eventstream_source only) `name` of another
+#         item in this manifest (must be a KQLDatabase, provisioned earlier)
+#         whose real item ID gets substituted into the definition folder's
+#         `__KQLDATABASE_ID__` placeholder before import (alongside
+#         `__WORKSPACE_ID__`, resolved automatically) -- this is what binds
+#         the Eventstream's Eventhouse destination to the right database.
 #
 # NOTE: if a pre-event dry run shows `fab deploy` (manifest-driven, wraps
-# fabric-cicd) reliably covers the two import-mode item types below, that
+# fabric-cicd) reliably covers the Eventstream item type, that
 # half of provision_fabric_iq.py could be simplified to a single
 # `fab deploy` call instead of looping with `fab import`. That substitution
 # is intentionally NOT made here yet -- see the comment in
@@ -62,13 +106,19 @@ items:
 
   - name: ColdChainEventhouse
     type: Eventhouse
-    mode: import
-    path: artifacts/Eventhouse/ColdChainEventhouse.Eventhouse
+    mode: create
+
+  - name: ColdChainKQLDB
+    type: KQLDatabase
+    mode: kql_database_source
+    path: artifacts/Eventhouse/ColdChainKQLDB.KQLDatabase
+    parent_eventhouse: ColdChainEventhouse
 
   - name: FreezerTelemetryEventstream
     type: Eventstream
-    mode: import
+    mode: eventstream_source
     path: artifacts/Eventstream/FreezerTelemetryEventstream.Eventstream
+    parent_kql_database: ColdChainKQLDB
 
   - name: 00_LoadReferenceData
     type: Notebook

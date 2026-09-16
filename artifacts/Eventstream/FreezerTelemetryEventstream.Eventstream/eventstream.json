@@ -14,8 +14,8 @@
             "type": "Eventhouse",
             "properties": {
                 "dataIngestionMode": "ProcessedIngestion",
-                "workspaceId": "c8a420ac-9167-4535-b03d-78228bcc3276",
-                "itemId": "fbca7690-7d00-4d53-a975-f4067b8b114e",
+                "workspaceId": "__WORKSPACE_ID__",
+                "itemId": "__KQLDATABASE_ID__",
                 "databaseName": "ColdChainKQLDB",
                 "tableName": "FreezerTelemetryRaw",
                 "inputSerialization": {
