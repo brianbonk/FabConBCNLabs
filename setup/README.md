@@ -12,11 +12,35 @@ below are the same ones that lab walks you through. Running it here ahead of tim
 ## Quick start
 
 **First, check your machine has what this needs** (Git, Python 3.10-3.13,
-and a working, isolated pip) and let it fix what it safely can:
+and a working, isolated pip) and let it fix what it safely can. Pick the
+block for your OS — every command below is a complete, ready-to-paste
+sequence, no substitutions needed:
 
+**macOS / Linux:**
 ```bash
 cd setup
-python3 check_environment.py          # or: ./check-environment.sh / .\check-environment.ps1
+./check-environment.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+cd setup
+.\check-environment.ps1
+```
+
+**Direct with Python instead of the launcher script** — same effect, useful if the launcher won't run for
+some reason:
+
+**macOS / Linux:**
+```bash
+cd setup
+python3 check_environment.py
+```
+
+**Windows (PowerShell):**
+```powershell
+cd setup
+python check_environment.py
 ```
 
 If it created a virtual environment, activate it as instructed and re-run
@@ -35,9 +59,16 @@ Python script directly.
 .\run-setup.ps1
 ```
 
-**Direct (any OS):**
+**Direct with Python instead of the launcher script:**
+
+**macOS / Linux:**
 ```bash
-python3 provision_fabric_iq.py          # Windows: python provision_fabric_iq.py
+python3 provision_fabric_iq.py
+```
+
+**Windows (PowerShell):**
+```powershell
+python provision_fabric_iq.py
 ```
 
 The script is interactive by default: it will list your eligible Fabric
@@ -109,8 +140,8 @@ prompting and the trial-capacity override.
 
 ## Missing or broken tools
 
-Run `python3 check_environment.py` any time you're not sure your machine is
-ready — it checks Git, your Python version (must be 3.10-3.13; ms-fabric-cli
+Run `python3 check_environment.py` (**Windows:** `python check_environment.py`) any time you're not sure
+your machine is ready — it checks Git, your Python version (must be 3.10-3.13; ms-fabric-cli
 doesn't yet support 3.14+), and whether you're in a virtual environment, and
 creates one at the repo root (`.venv`) if you aren't. It can't activate that
 venv for you (a script can't change its parent shell's environment) — it
@@ -131,11 +162,11 @@ check there first for the underlying fix.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `error: externally-managed-environment` on `pip install` | Your system Python (Homebrew/python.org/most Linux distros) blocks pip installs outside a venv (PEP 668). | Run `python3 check_environment.py`, activate the venv it creates, then re-run `pip install -r requirements.txt`. |
+| `error: externally-managed-environment` on `pip install` | Your system Python (Homebrew/python.org/most Linux distros) blocks pip installs outside a venv (PEP 668). | Run `python3 check_environment.py` (**Windows:** `python check_environment.py`), activate the venv it creates, then re-run `pip install -r requirements.txt`. |
 | `Command not found: fab` | Fabric CLI isn't installed. | `pip install ms-fabric-cli` (or `pip install -r requirements.txt`), confirm with `fab --version`. See Lab 00, Part A, steps 1 and 3. |
 | `Fabric CLI X.Y.Z is too old (need 1.7.0+)` | An older `fab` is on your PATH — e.g. from a system-wide install, a different venv, or a stale `requirements.txt` resolution. | `pip install -U ms-fabric-cli`, confirm with `fab --version`. |
 | `ls .capacities -l --output_format json` fails / "json output mode not supported" | Same root cause as above, but caught late — this is what an old `fab` actually looks like if it slips past Step 1 somehow (e.g. a patched or standalone copy of this script without the version check). | Same fix: `pip install -U ms-fabric-cli`. |
-| `Command not found: git` | Git isn't installed. | Run `python3 check_environment.py` for an OS-specific install command, or see PREREQUISITES.md's "Before you clone" section. |
+| `Command not found: git` | Git isn't installed. | Run `python3 check_environment.py` (**Windows:** `python check_environment.py`) for an OS-specific install command, or see PREREQUISITES.md's "Before you clone" section. |
 | Script hangs or fails at "Authentication" | Not signed in, or `fab auth login`'s browser/device-code flow is blocked by a corporate VPN/proxy. | Run `fab auth login` manually and watch for errors. See PREREQUISITES.md §3. |
 | "No capacities were returned by the Fabric CLI" | Your account has no visible/eligible Fabric capacity, or lacks Contributor+ role on one. | Confirm capacity access with your tenant admin. See PREREQUISITES.md §2. |
 | "Capacity looks like a trial capacity" warning | You selected (or only have) an FT1/trial capacity. | Use a non-trial F2+/P1+ capacity — trial capacities don't support Ontology/Graph/Data Agent features at all, and later modules will fail. See PREREQUISITES.md §1. Do not use `--force` to bypass this unless you fully understand later modules won't work. |

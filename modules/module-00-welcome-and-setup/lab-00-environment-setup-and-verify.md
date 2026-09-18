@@ -21,11 +21,19 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
 ## Part A — Set up your environment (skip if you already did this)
 
-1. **Confirm Git and Python 3.10-3.13 are installed:**
+1. **Confirm Git and Python 3.10-3.13 are installed.** Pick the block for your OS — both are complete,
+   ready-to-paste command sequences:
 
+   **macOS/Linux:**
    ```bash
    git --version
-   python3 --version                  # Windows: python --version
+   python3 --version
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   git --version
+   python --version
    ```
 
    > ✅ Expected result: a Git version prints, and `Python 3.10.x` through `3.13.x`. **Python 3.14 is too
@@ -51,8 +59,14 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 3. **Run the environment checker**, then create and activate an isolated virtual environment as it
    instructs:
 
+   **macOS/Linux:**
    ```bash
-   python3 setup/check_environment.py          # Windows: python setup/check_environment.py
+   python3 setup/check_environment.py
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   python setup/check_environment.py
    ```
 
    This re-confirms Git and Python, then — since recent Python installs (Homebrew, python.org, most Linux
@@ -61,9 +75,16 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    prints the exact activate command for your OS/shell; run it, then re-run the checker with
    `--install-deps` to also install the dependencies:
 
+   **macOS/Linux:**
    ```bash
-   source .venv/bin/activate          #  Windows: .venv\Scripts\Activate.ps1
-   python3 setup/check_environment.py --install-deps          # Windows: python setup/check_environment.py --install-deps
+   source .venv/bin/activate
+   python3 setup/check_environment.py --install-deps
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   .venv\Scripts\Activate.ps1
+   python setup/check_environment.py --install-deps
    ```
 
    > ✅ Expected result: ends with `ENVIRONMENT READY`, and `fab --version` now works. This installs
@@ -80,9 +101,16 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
 4. **Run the provisioning script** (from the same activated-venv terminal, inside `setup/`):
 
+   **macOS/Linux:**
    ```bash
    cd setup
-   python3 provision_fabric_iq.py          # Windows: python provision_fabric_iq.py
+   python3 provision_fabric_iq.py
+   ```
+
+   **Windows (PowerShell):**
+   ```powershell
+   cd setup
+   python provision_fabric_iq.py
    ```
 
    This prompts you to sign in (`fab auth login`) with your **Microsoft-provided account for this
@@ -123,9 +151,9 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    <summary>Troubleshooting — `[FAILED]` or `MISSING` items in the summary</summary>
 
    Most errors map directly to a fix in [`setup/README.md`](../../setup/README.md)'s troubleshooting
-   table — check there first. It's safe to just re-run `python3 provision_fabric_iq.py` (pass `--force`
-   to skip prompts) once you've addressed the underlying cause; it won't duplicate anything that already
-   succeeded.
+   table — check there first. It's safe to just re-run `python3 provision_fabric_iq.py` (**Windows:**
+   `python provision_fabric_iq.py`; pass `--force` to skip prompts) once you've addressed the underlying
+   cause; it won't duplicate anything that already succeeded.
    </details>
 
 ## Part B — Verify your environment
@@ -149,8 +177,8 @@ Continue from here whether you just finished Part A or arrived with your workspa
 
    If you don't see a workspace named exactly **Fabric IQ** in the list, Part A either wasn't run,
    didn't finish, or created the workspace under a different account than the one you're signed in with
-   now. Go back and re-run `python3 provision_fabric_iq.py`, or see the "If your environment isn't ready"
-   section below.
+   now. Go back and re-run `python3 provision_fabric_iq.py` (**Windows:** `python provision_fabric_iq.py`),
+   or see the "If your environment isn't ready" section below.
    </details>
 
    > ✅ Expected result: the workspace opens and shows a list of items.
@@ -171,8 +199,9 @@ Continue from here whether you just finished Part A or arrived with your workspa
    <details>
    <summary>Troubleshooting</summary>
 
-   Missing one or more items? Re-run `python3 provision_fabric_iq.py` — it's safe to re-run and will only
-   create what's missing, not duplicate what already exists. If it still fails, see
+   Missing one or more items? Re-run `python3 provision_fabric_iq.py` (**Windows:**
+   `python provision_fabric_iq.py`) — it's safe to re-run and will only create what's missing, not
+   duplicate what already exists. If it still fails, see
    [`setup/README.md`](../../setup/README.md) for mapped error messages, or flag a facilitator.
    </details>
 

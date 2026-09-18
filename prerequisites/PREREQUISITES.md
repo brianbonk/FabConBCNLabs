@@ -75,11 +75,11 @@ sudo apt update && sudo apt install -y git python3 python3-venv python3-pip
 sudo dnf install -y git python3 python3-pip
 ```
 
-Once you've cloned the repo, run `python3 setup/check_environment.py` from
-`FabricIQ/` — it re-checks both of these, plus pip, and sets up an isolated
-virtual environment for you so `pip install` doesn't fail with
-`externally-managed-environment` (a common error on recent Homebrew/Linux
-Python installs). See [`setup/README.md`](../setup/README.md) for details.
+Once you've cloned the repo, run `python3 setup/check_environment.py` (**Windows:**
+`python setup/check_environment.py`) from `FabricIQ/` — it re-checks both of these, plus pip, and sets up
+an isolated virtual environment for you so `pip install` doesn't fail with `externally-managed-environment`
+(a common error on recent Homebrew/Linux Python installs). See [`setup/README.md`](../setup/README.md) for
+details.
 
 You don't need to install the Fabric CLI (`fab`) yourself — `pip install -r
 setup/requirements.txt` installs it, pinned to `ms-fabric-cli>=1.7.0`. That
