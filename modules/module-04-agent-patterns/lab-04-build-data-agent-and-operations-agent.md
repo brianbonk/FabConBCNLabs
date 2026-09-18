@@ -270,4 +270,4 @@ At the end of this lab, your "Fabric IQ" workspace should contain, in addition t
   Activator item, wired to a Teams or email action, and confirmed to fire in business language when the
   Module 02 generator's synthetic anomaly lands.
 
-Continue to [Module 05: Prompting, Trust & Traceability](../module-05-prompting-trust-traceability/theory-05-prompting-grounding-validation-and-trust.md).
+Continue to [Module 05: Prompting, Trust & Traceability](../module-05-prompting-trust-traceability/lab-05-validate-and-audit-agent-responses.md).

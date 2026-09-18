@@ -25,7 +25,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
    ```bash
    git --version
-   python3 --version                  # macOS/Linux — Windows: python --version
+   python3 --version                  # Windows: python --version
    ```
 
    > ✅ Expected result: a Git version prints, and `Python 3.10.x` through `3.13.x`. **Python 3.14 is too
@@ -52,7 +52,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    instructs:
 
    ```bash
-   python3 setup/check_environment.py          # macOS/Linux — Windows: python setup/check_environment.py
+   python3 setup/check_environment.py          # Windows: python setup/check_environment.py
    ```
 
    This re-confirms Git and Python, then — since recent Python installs (Homebrew, python.org, most Linux
@@ -62,7 +62,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    `--install-deps` to also install the dependencies:
 
    ```bash
-   source .venv/bin/activate          # macOS/Linux — Windows: .venv\Scripts\Activate.ps1
+   source .venv/bin/activate          #  Windows: .venv\Scripts\Activate.ps1
    python3 setup/check_environment.py --install-deps          # Windows: python setup/check_environment.py --install-deps
    ```
 
@@ -82,7 +82,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
    ```bash
    cd setup
-   python3 provision_fabric_iq.py          # macOS/Linux — Windows: python provision_fabric_iq.py
+   python3 provision_fabric_iq.py          # Windows: python provision_fabric_iq.py
    ```
 
    This prompts you to sign in (`fab auth login`) with your **Microsoft-provided account for this
@@ -297,4 +297,4 @@ At the end of this lab, your "Fabric IQ" workspace should contain:
 - `00_LoadReferenceData` notebook
 
 No Ontology, Graph, Data Agent, or Operations Agent items exist yet — that's expected. Continue to
-[Module 01: Architecture & Context](../module-01-architecture-and-context/theory-01-fabric-iq-architecture-and-context.md).
+[Module 01: Architecture & Context](../module-01-architecture-and-context/lab-01-explore-workspace-and-data-landscape.md).

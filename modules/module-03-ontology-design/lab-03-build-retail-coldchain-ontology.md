@@ -260,4 +260,4 @@ At the end of this lab, `ColdChainOntology` in your "Fabric IQ" workspace should
 
 You now have a durable, queryable business-meaning layer sitting on top of live and static data — without a single row of it having been copied. Module 04 builds a Data Agent directly on top of `ColdChainOntology`, using exactly the entity, property, and relationship names you just chose.
 
-Continue to [Module 04: Agent Patterns](../module-04-agent-patterns/theory-04-agent-patterns.md).
+Continue to [Module 04: Agent Patterns](../module-04-agent-patterns/lab-04-build-data-agent-and-operations-agent.md).
