@@ -7,8 +7,8 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
 **Learning objectives**
 - Get your own "Fabric IQ" workspace provisioned and ready, live, if you haven't already.
-- Confirm the workspace and its four provisioned items exist and are healthy.
-- Confirm the Lakehouse's reference tables contain data.
+- Confirm the workspace and its five provisioned items exist and are healthy.
+- Run the reference-data notebook and confirm the Lakehouse's tables land with real data.
 - Confirm the Eventhouse's raw telemetry table exists (even though it's expected to be empty right now).
 - Know where to go for help if your own environment isn't in the expected state.
 
@@ -157,9 +157,12 @@ Continue from here whether you just finished Part A or arrived with your workspa
 
    *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
 
-8. **Confirm** the item list shows exactly these four items (names are case-sensitive and exact):
+8. **Confirm** the item list shows exactly these five items (names are case-sensitive and exact) — plus a
+   `ColdChainLakehouse.SQLEndpoint`, which Fabric auto-creates alongside every Lakehouse and isn't
+   something the script provisions itself, so don't count it against the five:
    - `ColdChainLakehouse` (Lakehouse)
    - `ColdChainEventhouse` (Eventhouse)
+   - `ColdChainKQLDB` (KQL database)
    - `FreezerTelemetryEventstream` (Eventstream)
    - `00_LoadReferenceData` (Notebook)
 
@@ -168,33 +171,55 @@ Continue from here whether you just finished Part A or arrived with your workspa
    <details>
    <summary>Troubleshooting</summary>
 
-   Missing one or more items? Re-run `provision_fabric_iq.py` — it's safe to re-run and will only create
-   what's missing, not duplicate what already exists. If it still fails, see
+   Missing one or more items? Re-run `python3 provision_fabric_iq.py` — it's safe to re-run and will only
+   create what's missing, not duplicate what already exists. If it still fails, see
    [`setup/README.md`](../../setup/README.md) for mapped error messages, or flag a facilitator.
    </details>
 
-   > ✅ Expected result: all four items are present. You do **not** see an Ontology, Graph, or Data Agent
+   > ✅ Expected result: all five items are present. You do **not** see an Ontology, Graph, or Data Agent
    > item yet — those don't exist yet on purpose. We build them live starting in Module 03.
 
-9. **Click** **ColdChainLakehouse** to open it, then **expand** the **Tables** node in the left Explorer
-   pane if it isn't already expanded.
+9. **Click** **00_LoadReferenceData** in the workspace item list to open the notebook, then **click**
+   **Run all** on the ribbon.
 
-   ![Step 9](../../assets/screenshots/lab-00/step-04.png)
+   This step is required, not optional — `provision_fabric_iq.py` deliberately only *imports* this
+   notebook, it does not run it for you (importing a notebook item never executes it). Until you run it,
+   the Lakehouse's **Tables** node in the next step will be empty — there's no in-between "tables exist
+   but empty" state, because the notebook is what creates the tables in the first place.
 
-   > ✅ Expected result: three Delta tables are listed — `Customers`, `Stores`, `Freezers`.
+   > ✅ Expected result: all cells run successfully (green checkmarks top to bottom), ending with the
+   > printed message `00_LoadReferenceData completed successfully: Stores, Freezers, Customers tables
+   > are ready.` This typically takes under a minute.
 
-10. **Click** each of the three tables in turn and **confirm** each one shows rows of data in the preview
+   <details>
+   <summary>Troubleshooting</summary>
+
+   - **Notebook won't open / `00_LoadReferenceData` isn't in the item list:** Part A didn't finish
+     successfully. Re-run `python3 provision_fabric_iq.py` (or `.\run-setup.ps1` / `./run-setup.sh`) — it's
+     safe to re-run.
+   - **A cell errors partway through:** re-run **Run all** once — a cold Spark session occasionally times
+     out its first read. If it fails the same way twice, check the error against
+     [`setup/README.md`](../../setup/README.md)'s troubleshooting table, or flag a facilitator.
+   </details>
+
+10. **Click** **ColdChainLakehouse** to open it, then **expand** the **Tables** node in the left Explorer
+    pane if it isn't already expanded.
+
+    ![Step 10](../../assets/screenshots/lab-00/step-04.png)
+
+    > ✅ Expected result: three Delta tables are listed — `Customers`, `Stores`, `Freezers`.
+
+11. **Click** each of the three tables in turn and **confirm** each one shows rows of data in the preview
     pane, not an empty table.
 
-    ![Step 10](../../assets/screenshots/lab-00/step-05.png)
+    ![Step 11](../../assets/screenshots/lab-00/step-05.png)
 
     <details>
     <summary>Troubleshooting</summary>
 
-    Tables exist but are empty? The `00_LoadReferenceData` notebook may not have run to completion.
-    **Open** the `00_LoadReferenceData` notebook from the workspace item list and **click** **Run all** to
-    re-seed the reference data, then come back and re-check the tables. If it still fails, see
-    [`setup/README.md`](../../setup/README.md).
+    Tables missing or empty? Go back to step 9 and confirm **Run all** actually completed (check for a
+    red error badge on any cell, and the "completed successfully" message in the last cell's output), then
+    re-check the tables here. If it still fails, see [`setup/README.md`](../../setup/README.md).
     </details>
 
     > ✅ Expected result: `Customers`, `Stores`, and `Freezers` each contain multiple rows of reference
@@ -202,22 +227,22 @@ Continue from here whether you just finished Part A or arrived with your workspa
 
     *Adapted from: [Get started with Fabric IQ](https://learn.microsoft.com/fabric/iq/get-started-with-fabric-iq)*
 
-11. **Go back** to the workspace item list and **click** **ColdChainEventhouse** to open it, then **click**
+12. **Go back** to the workspace item list and **click** **ColdChainEventhouse** to open it, then **click**
     the **ColdChainKQLDB** database in the left Explorer pane.
 
-    ![Step 11](../../assets/screenshots/lab-00/step-06.png)
+    ![Step 12](../../assets/screenshots/lab-00/step-06.png)
 
     > ✅ Expected result: the KQL database opens with a query editor pane and `FreezerTelemetryRaw` listed
     > as a table under the database.
 
-12. **Type** the following query into the query editor and **click** **Run**:
+13. **Type** the following query into the query editor and **click** **Run**:
 
     ```kql
     FreezerTelemetryRaw
     | take 10
     ```
 
-    ![Step 12](../../assets/screenshots/lab-00/step-07.png)
+    ![Step 13](../../assets/screenshots/lab-00/step-07.png)
 
     > ✅ Expected result: the query runs successfully and returns **zero rows**. This is expected, not a
     > bug — the `FreezerTelemetryRaw` table exists and is ready to receive data, but the synthetic freezer
