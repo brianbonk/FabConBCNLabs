@@ -144,6 +144,21 @@ check there first for the underlying fix.
 
 ## For maintainers: judgment calls made while writing this script
 
+- **Windows console encoding**: reported by a real attendee tester —
+  without a fix, this script raised `UnicodeDecodeError` reading `fab`'s
+  output, and separately `UnicodeEncodeError` printing it back out, on
+  Windows. Root cause: Python's default text encoding for both subprocess
+  output and `sys.stdout`/`sys.stderr` follows the OS locale, and Windows'
+  legacy console code page (not UTF-8) is still that default even in
+  current Python unless the `PYTHONUTF8=1` environment variable is set —
+  which `fab`'s own UTF-8 output (colors, symbols) doesn't respect. Fixed
+  two ways so attendees don't need to set that variable themselves: every
+  `subprocess.run(..., text=True)` call now passes
+  `encoding="utf-8", errors="replace"` explicitly (see `run()` in
+  `provision_fabric_iq.py`, and the equivalent calls in
+  `check_environment.py`), and `main()` in both scripts reconfigures
+  `sys.stdout`/`sys.stderr` to UTF-8 (`errors="replace"`) on startup — a
+  no-op on macOS/Linux, which already default to UTF-8.
 - **Auth check command**: confirmed live (fab 0.1.10) that `fab auth status`
   exits 0 and prints `✓ Logged in to ...` when authenticated, non-zero
   otherwise. The script uses that directly (`is_authenticated()`).

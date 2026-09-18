@@ -146,7 +146,11 @@ def check_git() -> str:
     path = shutil.which("git")
     if not path:
         raise CheckError("Git was not found on your PATH.", hint=git_install_hint())
-    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
+    # encoding="utf-8"/errors="replace": confirmed by a tester that Windows'
+    # legacy console code page otherwise raises UnicodeDecodeError decoding
+    # subprocess output (see the matching note in provision_fabric_iq.py's
+    # run() helper).
+    result = subprocess.run(["git", "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     version = result.stdout.strip() or "git (version unknown)"
     print(f"[OK] {version}")
     return version
@@ -208,7 +212,11 @@ def check_or_create_venv(dry_run: bool) -> bool:
 
 def check_pip(dry_run: bool) -> None:
     result = subprocess.run(
-        [sys.executable, "-m", "pip", "--version"], capture_output=True, text=True
+        [sys.executable, "-m", "pip", "--version"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != 0:
         raise CheckError(
@@ -271,6 +279,16 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    # Windows' legacy console code page (not UTF-8) is still Python's default
+    # stdout/stderr encoding as of this writing, unless the PYTHONUTF8=1 env
+    # var is set -- confirmed by a tester that without it, print() calls
+    # containing non-ASCII characters raise UnicodeEncodeError. Reconfiguring
+    # here removes the need for attendees to set that variable themselves; a
+    # no-op on macOS/Linux, which already default to UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     args = parse_args(argv)
 
     try:

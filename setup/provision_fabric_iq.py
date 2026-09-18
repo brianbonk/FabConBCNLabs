@@ -229,7 +229,14 @@ def run(cmd: list[str], *, dry_run: bool = False, allow_dry_run_execute: bool = 
 
     print(f"  $ {printable}")
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # encoding="utf-8" (rather than the default text=True, which decodes
+        # using the OS's locale-preferred encoding) is required on Windows:
+        # confirmed by a tester that `fab`'s UTF-8 output otherwise raises
+        # UnicodeDecodeError under Windows' legacy console code page (e.g.
+        # cp1252), before this command's own returncode is even checked.
+        # errors="replace" keeps a single unexpected byte from crashing the
+        # whole run.
+        result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     except FileNotFoundError as exc:
         raise ProvisioningError(
             f"Command not found: {cmd[0]}",
@@ -550,6 +557,8 @@ def resolve_artifact_root(dry_run: bool) -> Path:
         ["git", "clone", "--depth", "1", DEFAULT_REPO_URL, str(tmp_dir)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     if result.returncode != 0:
         raise ProvisioningError(
@@ -1233,6 +1242,17 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    # Windows' legacy console code page (not UTF-8) is still Python's default
+    # stdout/stderr encoding as of this writing, unless the PYTHONUTF8=1 env
+    # var is set -- confirmed by a tester that without it, this script's own
+    # print() calls raise UnicodeEncodeError on output containing characters
+    # outside that code page (e.g. from `fab`'s own colored/symbol output).
+    # Reconfiguring here removes the need for attendees to set that variable
+    # themselves; a no-op on macOS/Linux, which already default to UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     args = parse_args(argv)
 
     try:
