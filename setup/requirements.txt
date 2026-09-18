@@ -10,7 +10,18 @@
 # publish wheels for 3.14+ (`Requires-Python >=3.10,<3.14`), so this install
 # fails outright on newer interpreters -- run setup/check_environment.py
 # first, it checks this for you.
-ms-fabric-cli>=1.0.0
+#
+# ms-fabric-cli's minimum is pinned to 1.7.0, not just "some version that
+# exists" -- reported by a real attendee tester: the much looser >=1.0.0
+# this pin used to be let pip resolve an older CLI that doesn't behave the
+# way this script's `--output_format json` parsing expects (list_capacities()
+# et al.), failing confusingly at Step 3 ("ls .capacities -l --output_format
+# json" not supported) rather than clearly at Step 1. `--output_format json`
+# support itself first shipped in ms-fabric-cli 1.1.0, but 1.7.0 is the only
+# version this script has actually been tested against -- see
+# check_fab_installed() in provision_fabric_iq.py, which checks this
+# explicitly (not just that `fab --version` merely responds).
+ms-fabric-cli>=1.7.0
 pyyaml>=6.0
 
 # No local Kusto dependency is needed to apply

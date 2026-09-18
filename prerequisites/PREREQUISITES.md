@@ -75,6 +75,16 @@ virtual environment for you so `pip install` doesn't fail with
 `externally-managed-environment` (a common error on recent Homebrew/Linux
 Python installs). See [`setup/README.md`](../setup/README.md) for details.
 
+You don't need to install the Fabric CLI (`fab`) yourself — `pip install -r
+setup/requirements.txt` installs it, pinned to `ms-fabric-cli>=1.7.0`. That
+floor is deliberate, not arbitrary: this workshop's tooling was only ever
+tested against 1.7.0, and an older CLI (reported by a real attendee tester)
+fails confusingly partway through `provision_fabric_iq.py` rather than at
+the version check itself. If you already have an older `fab` on your PATH
+from something else, `pip install -U ms-fabric-cli` fixes it —
+`provision_fabric_iq.py` checks this explicitly and tells you if it's still
+too old.
+
 ## Optional: doing Module 00's setup ahead of time
 
 Nothing above requires it, but any attendee who already has their Microsoft-provided account and wants to

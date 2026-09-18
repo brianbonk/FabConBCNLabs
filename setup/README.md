@@ -133,6 +133,8 @@ check there first for the underlying fix.
 |---|---|---|
 | `error: externally-managed-environment` on `pip install` | Your system Python (Homebrew/python.org/most Linux distros) blocks pip installs outside a venv (PEP 668). | Run `python3 check_environment.py`, activate the venv it creates, then re-run `pip install -r requirements.txt`. |
 | `Command not found: fab` | Fabric CLI isn't installed. | `pip install ms-fabric-cli` (or `pip install -r requirements.txt`), confirm with `fab --version`. See Lab 00, Part A, steps 1 and 3. |
+| `Fabric CLI X.Y.Z is too old (need 1.7.0+)` | An older `fab` is on your PATH — e.g. from a system-wide install, a different venv, or a stale `requirements.txt` resolution. | `pip install -U ms-fabric-cli`, confirm with `fab --version`. |
+| `ls .capacities -l --output_format json` fails / "json output mode not supported" | Same root cause as above, but caught late — this is what an old `fab` actually looks like if it slips past Step 1 somehow (e.g. a patched or standalone copy of this script without the version check). | Same fix: `pip install -U ms-fabric-cli`. |
 | `Command not found: git` | Git isn't installed. | Run `python3 check_environment.py` for an OS-specific install command, or see PREREQUISITES.md's "Before you clone" section. |
 | Script hangs or fails at "Authentication" | Not signed in, or `fab auth login`'s browser/device-code flow is blocked by a corporate VPN/proxy. | Run `fab auth login` manually and watch for errors. See PREREQUISITES.md §3. |
 | "No capacities were returned by the Fabric CLI" | Your account has no visible/eligible Fabric capacity, or lacks Contributor+ role on one. | Confirm capacity access with your tenant admin. See PREREQUISITES.md §2. |
@@ -159,6 +161,20 @@ check there first for the underlying fix.
   `check_environment.py`), and `main()` in both scripts reconfigures
   `sys.stdout`/`sys.stderr` to UTF-8 (`errors="replace"`) on startup — a
   no-op on macOS/Linux, which already default to UTF-8.
+- **`ms-fabric-cli` minimum version pinned to 1.7.0, not left open-ended**:
+  also reported by a real attendee tester — `requirements.txt`'s pin used
+  to be `ms-fabric-cli>=1.0.0`, and pip resolved an older CLI that doesn't
+  support `--output_format json` for `ls`, failing confusingly at Step 3
+  ("json output mode not supported") rather than clearly at Step 1.
+  `--output_format json` support first shipped in ms-fabric-cli 1.1.0 per
+  its release notes, but this script has only ever been tested against
+  1.7.0 — earlier versions' exact JSON response shape, field names, and
+  error codes aren't verified to match what `list_capacities()`,
+  `run_kql_schema()`, etc. parse. `check_fab_installed()` now parses
+  `fab --version`'s output and checks it against `MIN_FAB_VERSION`
+  explicitly (confirmed live, both against the real installed 1.7.0 and a
+  simulated older version), instead of only checking that `fab --version`
+  merely responds.
 - **Auth check command**: confirmed live (fab 0.1.10) that `fab auth status`
   exits 0 and prints `✓ Logged in to ...` when authenticated, non-zero
   otherwise. The script uses that directly (`is_authenticated()`).

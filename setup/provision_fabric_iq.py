@@ -75,6 +75,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -95,6 +96,20 @@ except ImportError:
 
 MIN_PYTHON = (3, 10)
 DEFAULT_WORKSPACE_NAME = "Fabric IQ"
+
+# This script was built against and only ever tested live against fab
+# 1.7.0. `--output_format json` exists from fab 1.1.0 (2025-09-10) onward,
+# but this script depends on more than its mere existence -- the exact
+# response envelope shape (`{"result": {"data": [...]}}`), per-item field
+# names, and error-code strings it parses (list_capacities(),
+# run_kql_schema(), etc.) were all confirmed live only against 1.7.0.
+# Reported by a real attendee tester: with an older CLI resolved by
+# `pip install -r requirements.txt` (this pin used to be the much looser
+# `ms-fabric-cli>=1.0.0`), `ls .capacities -l --output_format json` failed
+# outright with "json output mode not supported" -- a confusing failure at
+# Step 3, far from its actual cause. check_fab_installed() below checks this
+# explicitly so a too-old CLI fails fast and clearly at Step 1 instead.
+MIN_FAB_VERSION = (1, 7, 0)
 
 # Derived from this repo's actual `git remote -v` at authoring time. Used
 # only as a fallback when this script is run standalone (not from within a
@@ -282,11 +297,32 @@ def check_fab_installed(dry_run: bool) -> str:
         raise ProvisioningError(
             "Fabric CLI ('fab') was not found or did not respond to --version.",
             hint=(
-                "Install it with:  pip install ms-fabric-cli\n"
+                f"Install it with:  pip install ms-fabric-cli>={'.'.join(map(str, MIN_FAB_VERSION))}\n"
                 f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 4."
             ),
         )
     version = result.stdout.strip()
+
+    # `fab --version` prints e.g. "fab version 1.7.0\nhttps://...". A
+    # too-old CLI (this script's requirements.txt pin used to be the much
+    # looser ms-fabric-cli>=1.0.0) doesn't fail here -- it fails later,
+    # confusingly, when --output_format json behaves differently than the
+    # version this script was built against. Check explicitly, always (not
+    # gated on dry_run -- this is a real, current fact about the installed
+    # tool, same as check_python_version() above), so that failure is fast
+    # and clear instead.
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", version)
+    found = tuple(int(g) for g in match.groups()) if match else None
+    if found is None or found < MIN_FAB_VERSION:
+        raise ProvisioningError(
+            f"Fabric CLI {found and '.'.join(map(str, found)) or '(unknown)'} is too old "
+            f"(need {'.'.join(map(str, MIN_FAB_VERSION))}+).",
+            hint=(
+                f"Upgrade with:  pip install -U ms-fabric-cli>={'.'.join(map(str, MIN_FAB_VERSION))}\n"
+                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 4."
+            ),
+        )
+
     print(f"Fabric CLI OK: {version}")
     return version
 
