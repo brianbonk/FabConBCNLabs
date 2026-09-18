@@ -10,8 +10,10 @@
 
 $ErrorActionPreference = "Stop"
 
+$pythonCmd = "python3"
 $python = Get-Command python3 -ErrorAction SilentlyContinue
 if (-not $python) {
+    $pythonCmd = "python"
     $python = Get-Command python -ErrorAction SilentlyContinue
 }
 if (-not $python) {
@@ -20,7 +22,7 @@ if (-not $python) {
 }
 
 if (-not $env:VIRTUAL_ENV) {
-    Write-Warning "No virtual environment detected. If 'fab' isn't found below, run 'python3 check_environment.py --install-deps' first."
+    Write-Warning "No virtual environment detected. If 'fab' isn't found below, run '$pythonCmd check_environment.py --install-deps' first."
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

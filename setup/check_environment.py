@@ -202,10 +202,14 @@ def check_or_create_venv(dry_run: bool) -> bool:
                 ) from exc
             print(f"[OK] Created virtual environment at {VENV_PATH}")
 
+    # Confirmed live by a tester: Windows installs from python.org/winget
+    # provide `python`, not `python3` -- including inside an activated venv,
+    # which doesn't get its own python3.exe on Windows either.
+    python_cmd = "python" if _os_name() == "windows" else "python3"
     print(
         "\n[ACTION NEEDED] Activate the virtual environment, then re-run this script:\n"
         f"    {activate_hint()}\n"
-        "    python3 setup/check_environment.py --install-deps"
+        f"    {python_cmd} setup/check_environment.py --install-deps"
     )
     return False
 

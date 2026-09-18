@@ -29,8 +29,8 @@ Confirm your environment matches this state before starting:
 - [ ] `ColdChainKQLDB`'s Explorer pane already shows `FreezerTelemetryEnriched` under **Materialized
       views** — Module 00's provisioning script creates it up front; this lab explains it and confirms it
       works, rather than building it from scratch.
-- [ ] You have a terminal open at the root of this cloned repo, with `python3 --version` reporting 3.10 or
-      later.
+- [ ] You have a terminal open at the root of this cloned repo, with `python3 --version` (Windows:
+      `python --version`) reporting 3.10 or later.
 
 ## Steps
 
@@ -113,7 +113,7 @@ module — watch for trailing spaces or partial copies when circulating. -->
 9. **Run** the generator:
 
    ```
-   python3 artifacts/generator/freezer_telemetry_generator.py
+   python3 artifacts/generator/freezer_telemetry_generator.py          # Windows: python artifacts/generator/freezer_telemetry_generator.py
    ```
 
    ![Step 9](../../assets/screenshots/lab-02/step-09.png)
@@ -207,9 +207,10 @@ Module 03 is where this workshop's hands-on KQL/ontology authoring time is spent
     If `FreezerTelemetryEnriched` isn't listed, or `.show materialized-view` errors "not found", Module
     00's `provision_fabric_iq.py` run either skipped the KQL schema step (`--skip-kql-schema`) or it
     failed — check that run's summary output. You can
-    re-run it now: `python3 setup/provision_fabric_iq.py --force` (from the repo root, in your activated
-    venv), or paste `ColdChainKQLDB.kql`'s contents into a new Queryset tab and run it manually — every
-    statement in it is safe to re-run.
+    re-run it now: `python3 setup/provision_fabric_iq.py --force` (Windows: `python
+    setup\provision_fabric_iq.py --force`; from the repo root, in your activated venv), or paste
+    `ColdChainKQLDB.kql`'s contents into a new Queryset tab and run it manually — every statement in it is
+    safe to re-run.
     </details>
 
     *Adapted from: this lab's own [`ColdChainKQLDB.kql`](../../artifacts/Eventhouse/ColdChainKQLDB.kql),

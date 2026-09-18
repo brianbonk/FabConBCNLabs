@@ -37,7 +37,7 @@ Python script directly.
 
 **Direct (any OS):**
 ```bash
-python3 provision_fabric_iq.py
+python3 provision_fabric_iq.py          # Windows: python provision_fabric_iq.py
 ```
 
 The script is interactive by default: it will list your eligible Fabric

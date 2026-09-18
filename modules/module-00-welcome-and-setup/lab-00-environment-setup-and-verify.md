@@ -25,7 +25,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
    ```bash
    git --version
-   python3 --version
+   python3 --version                  # macOS/Linux — Windows: python --version
    ```
 
    > ✅ Expected result: a Git version prints, and `Python 3.10.x` through `3.13.x`. **Python 3.14 is too
@@ -52,7 +52,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    instructs:
 
    ```bash
-   python3 setup/check_environment.py
+   python3 setup/check_environment.py          # macOS/Linux — Windows: python setup/check_environment.py
    ```
 
    This re-confirms Git and Python, then — since recent Python installs (Homebrew, python.org, most Linux
@@ -63,7 +63,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
    ```bash
    source .venv/bin/activate          # macOS/Linux — Windows: .venv\Scripts\Activate.ps1
-   python3 setup/check_environment.py --install-deps
+   python3 setup/check_environment.py --install-deps          # Windows: python setup/check_environment.py --install-deps
    ```
 
    > ✅ Expected result: ends with `ENVIRONMENT READY`, and `fab --version` now works. This installs
@@ -82,7 +82,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 
    ```bash
    cd setup
-   python3 provision_fabric_iq.py
+   python3 provision_fabric_iq.py          # macOS/Linux — Windows: python provision_fabric_iq.py
    ```
 
    This prompts you to sign in (`fab auth login`) with your **Microsoft-provided account for this
