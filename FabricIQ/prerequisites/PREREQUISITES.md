@@ -76,8 +76,3 @@ Python 3.10-3.13 (section 1 above), then follow [`setup/README.md`](../setup/REA
 `check_environment.py` and `provision_fabric_iq.py`. If you do, just skip straight to Part B when Module
 08 starts. This is a convenience, not something to assume — the agenda is built assuming most people
 haven't.
-
-## Support contact
-
-Questions or issues with any of the above: contact Brian ahead of the event — problems caught a week
-out are a five-minute fix; problems discovered live in the room are not.
