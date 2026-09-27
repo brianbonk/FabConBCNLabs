@@ -283,4 +283,4 @@ At the end of this lab, your workspace should contain:
 
 Raw telemetry is no longer just numbers — it now carries the enterprise context needed to say whether a
 reading is fine or a crisis. Continue to [Module 11: Ontology
-Design](../module-11-ontology-design/lab-11-build-retail-coldchain-ontology.md).
+Design](../module-11-ontology-design/11-theory-ontology-design-essentials.md).

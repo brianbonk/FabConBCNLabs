@@ -326,4 +326,4 @@ At the end of this lab, your "Fabric IQ" workspace should contain:
 - `00_LoadReferenceData` notebook
 
 No Ontology, Graph, Data Agent, or Operations Agent items exist yet — that's expected. Continue to
-[Module 09: Architecture & Context](../module-09-architecture-and-context/lab-09-explore-workspace-and-data-landscape.md).
+[Module 09: Architecture & Context](../module-09-architecture-and-context/09-theory-fabric-iq-architecture-and-context.md).

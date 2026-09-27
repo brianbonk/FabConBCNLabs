@@ -100,4 +100,4 @@ describe it in these terms:
 - No relationship yet connects the two, and no ontology, semantic grounding, or agent exists to bridge
   them — that gap is exactly what Module 10 starts to close.
 
-Continue to [Module 10: Telemetry & Grounding](../module-10-telemetry-and-grounding/lab-10-join-streaming-and-reference-data.md) (combining real-time telemetry with semantic context).
+Continue to [Module 10: Telemetry & Grounding](../module-10-telemetry-and-grounding/10-theory-telemetry-plus-semantic-context.md) (combining real-time telemetry with semantic context).
