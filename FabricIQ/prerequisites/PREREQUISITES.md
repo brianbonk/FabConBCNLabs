@@ -25,11 +25,18 @@ winget install --id Python.Python.3.12 -e
 (or download installers from [git-scm.com](https://git-scm.com/download/win) and
 [python.org](https://www.python.org/downloads/) — tick "Add python.exe to PATH" during Python setup)
 
-**Windows note on `python3` vs `python`:** every lab in this workshop writes Python commands as `python3
-...` (the standard command name on macOS/Linux). Windows installs from python.org/winget provide `python`
-and `py`, not `python3` — confirmed by a real attendee tester that this fails even inside an activated
-venv, not just at the system level. Wherever a lab or this doc says `python3 <something>`, run `python
-<something>` instead if you're on Windows and `python3` isn't found.
+> [!IMPORTANT]
+> ## ❗️ WINDOWS USERS: use `python`, not `python3`
+>
+> **Every lab in this workshop writes Python commands as `python3 ...`** (the standard command name on
+> macOS/Linux). Windows installs from python.org/winget provide `python` and `py`, **not `python3`**.
+>
+> **Wherever a lab or this doc says `python3 <something>`, run `python <something>` instead** if you're on
+> Windows and `python3` isn't found.
+>
+> | Lab says                             | On Windows, type                    |
+> | ------------------------------------ | ----------------------------------- |
+> | `python3 setup/check_environment.py` | `python setup/check_environment.py` |
 
 **macOS:**
 ```bash
