@@ -1,0 +1,11 @@
+StationName,Lines,Zone
+El Maresme | Forum,L4,Venue
+Besos Mar,L4,Corridor
+Selva de Mar,L4,Corridor
+Barceloneta,L4,Corridor
+Passeig de Gracia,L2;L3;L4,Interchange
+Catalunya,L1;L3,Interchange
+Sagrada Familia,L2;L5,Interchange
+Diagonal,L3;L5,Interchange
+Glories,L1,Corridor
+Sants Estacio,L3;L5,Interchange

@@ -1,0 +1,55 @@
+{
+  "source": "tmb.ibus",
+  "key": "1265",
+  "fetchedAt": "2026-09-23T08:47:01.741901+00:00",
+  "payload": {
+    "timestamp": 1790153221713,
+    "parades": [
+      {
+        "codi_parada": "1265",
+        "nom_parada": "Pg de Sant Joan - Còrsega",
+        "linies_trajectes": [
+          {
+            "id_operador": 2,
+            "transit_namespace": "bus",
+            "codi_linia": 208,
+            "nom_linia": "H8",
+            "id_sentit": 2,
+            "codi_trajecte": "2081",
+            "desti_trajecte": "Ernest Lluch",
+            "propers_busos": [
+              {"temps_arribada": 1790153253000, "id_bus": 6405, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}},
+              {"temps_arribada": 1790154085000, "id_bus": 6802, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}}
+            ]
+          },
+          {
+            "id_operador": 2,
+            "transit_namespace": "bus",
+            "codi_linia": 47,
+            "nom_linia": "47",
+            "id_sentit": 2,
+            "codi_trajecte": "0471",
+            "desti_trajecte": "Pg. Marítim",
+            "propers_busos": [
+              {"temps_arribada": 1790153675000, "id_bus": 5426, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}},
+              {"temps_arribada": 1790154287000, "id_bus": 5010, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}}
+            ]
+          },
+          {
+            "id_operador": 2,
+            "transit_namespace": "bus",
+            "codi_linia": 219,
+            "nom_linia": "V19",
+            "id_sentit": 2,
+            "codi_trajecte": "2191",
+            "desti_trajecte": "Barceloneta",
+            "propers_busos": [
+              {"temps_arribada": 1790153895000, "id_bus": 5809, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}},
+              {"temps_arribada": 1790154512000, "id_bus": 5833, "info_bus": {"accessibilitat": {"estat_rampa": "SENSE_INCIDENCIA"}}}
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

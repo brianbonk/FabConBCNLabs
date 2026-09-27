@@ -1,0 +1,19 @@
+StopCode,StopName,Address,Zone,Lat,Lon,Lines,IsPrimary,PollIntervalSeconds
+2689,Diagonal Mar,,Venue,41.410308,2.218317,H16,true,30
+2259,Diagonal - Llull,,Venue,41.410569,2.215317,7,false,30
+3347,Diagonal - Pl Llevant,,Venue,41.410489,2.216268,7,false,30
+1090,Metro Maresme - Fòrum,,Venue,41.412226,2.217168,136,false,30
+3477,Pg Taulat - Pl de Llevant,,Venue,41.409730,2.218098,H16,false,30
+1878,Rambla Prim - Av. Diagonal,,Venue,41.412152,2.218600,V31,false,30
+2700,Espronceda - Jardins Josep Trueta,,Corridor,41.404391,2.205749,V27;V31,false,60
+662,Marina-Pl. dels Voluntaris,,Corridor,41.388387,2.195599,136;59;V21;V27,false,60
+32,Metro Glòries,,Corridor,41.403084,2.188341,7;H12,false,60
+2265,Pg Taulat - Diagonal Mar,,Corridor,41.407092,2.215364,H16,false,60
+1297,Mallorca - Marina,,Interchange,41.403918,2.175879,19;33;H10,false,60
+956,Pg Joan de Borbó,,Interchange,41.379937,2.187269,47;59;D20;V15;V19,false,60
+3878,Pg Sant Antoni - Parc de l'Espanya Industrial,,Interchange,41.378295,2.140762,H10,false,60
+281,Pg de Gràcia - Diagonal,,Interchange,41.396167,2.160115,7;V15,false,60
+1210,Pl Catalunya - Pg de Gràcia,,Interchange,41.387777,2.169336,H16,false,60
+1103,Pl. Catalunya - Portal de l'Àngel,,Interchange,41.386551,2.171047,59;H16;V15,false,60
+1282,Platja de la Barceloneta,,Interchange,41.380327,2.192847,47;59;D20,false,60
+784,València - Lepant,,Interchange,41.403279,2.177517,33;H10,false,60

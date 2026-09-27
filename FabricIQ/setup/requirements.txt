@@ -1,0 +1,42 @@
+# Python dependencies for the Fabric IQ workshop's Python tooling.
+#
+# ms-fabric-cli provides the `fab` command setup/provision_fabric_iq.py shells
+# out to. pyyaml is used to parse setup/manifest.yaml. Neither script needs
+# anything else -- both deliberately stick to the Python standard library
+# (subprocess, argparse, sys, pathlib, re, csv, dataclasses) beyond these
+# pins, per this workshop's "fool proof, minimal moving parts" design goal.
+#
+# Requires Python 3.10-3.13. ms-fabric-cli's latest PyPI release does not yet
+# publish wheels for 3.14+ (`Requires-Python >=3.10,<3.14`), so this install
+# fails outright on newer interpreters -- run setup/check_environment.py
+# first, it checks this for you.
+#
+# ms-fabric-cli's minimum is pinned to 1.7.0, not just "some version that
+# exists" -- reported by a real attendee tester: the much looser >=1.0.0
+# this pin used to be let pip resolve an older CLI that doesn't behave the
+# way this script's `--output_format json` parsing expects (list_capacities()
+# et al.), failing confusingly at Step 3 ("ls .capacities -l --output_format
+# json" not supported) rather than clearly at Step 1. `--output_format json`
+# support itself first shipped in ms-fabric-cli 1.1.0, but 1.7.0 is the only
+# version this script has actually been tested against -- see
+# check_fab_installed() in provision_fabric_iq.py, which checks this
+# explicitly (not just that `fab --version` merely responds).
+ms-fabric-cli>=1.7.0
+pyyaml>=6.0
+
+# No local Kusto dependency is needed to apply
+# artifacts/Eventhouse/ColdChainKQLDB.kql -- provision_fabric_iq.py's
+# run_kql_schema() runs it server-side via a throwaway Fabric notebook (`fab
+# import` + `fab job run`, both reusing the existing `fab auth login`
+# session), not from this laptop. An earlier version called Kusto directly
+# via the azure-kusto-data SDK, which needed its own separate interactive
+# sign-in; confirmed live that running from a notebook instead avoids that
+# entirely (notebookutils.credentials.getToken("kusto") gives the notebook a
+# trusted-execution token for free). See run_kql_schema()'s docstring.
+
+# azure-eventhub is required ONLY for Module 10's lab, to run
+# artifacts/generator/freezer_telemetry_generator.py (Fabric Eventstream's
+# custom-endpoint source is Event Hubs-compatible SAS/AMQP, not a plain HTTPS
+# endpoint -- see the generator script's docstring for why). It is not needed
+# to run provision_fabric_iq.py itself.
+azure-eventhub>=5.11.0

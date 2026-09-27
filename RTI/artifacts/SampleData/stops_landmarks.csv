@@ -1,0 +1,12 @@
+Zone,Landmark,Lat,Lon,PreferredLines,RadiusMeters,IsPrimary,PollIntervalSeconds
+Venue,CCIB - Diagonal Mar / Pl de Llevant (Av Diagonal - Pg Taulat),41.4105,2.2178,H16;7,300,true,30
+Venue,El Maresme | Forum metro (Rambla Prim - Av Diagonal),41.4121,2.2175,136;V31,300,false,30
+Corridor,Pg Taulat - Diagonal Mar,41.4071,2.2154,H16,250,false,60
+Corridor,Poblenou - Rambla del Poblenou / Diagonal,41.4029,2.2043,7;H16;V27,300,false,60
+Corridor,Glories,41.4033,2.1868,7;H12;V21,300,false,60
+Corridor,Vila Olimpica / Marina,41.3880,2.1962,V21;D20;59,300,false,60
+Interchange,Placa Catalunya,41.3870,2.1700,V15;H16;59;47,300,false,60
+Interchange,Passeig de Gracia - Diagonal,41.3955,2.1613,7;V15;H8,300,false,60
+Interchange,Sagrada Familia,41.4036,2.1744,V19;H10;19;33,300,false,60
+Interchange,Sants Estacio,41.3792,2.1401,H10;V7;D40,300,false,60
+Interchange,Barceloneta - Pla de Palau,41.3809,2.1899,V15;V17;59;D20,300,false,60

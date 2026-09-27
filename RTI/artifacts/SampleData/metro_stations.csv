@@ -1,0 +1,11 @@
+StationCode,StationName,Lines,Zone,Lat,Lon
+416,El Maresme | Fòrum,L4,Venue,41.411808,2.216718
+415,Besòs Mar,L4,Corridor,41.415127,2.216108
+417,Selva de Mar,L4,Corridor,41.408030,2.209148
+422,Barceloneta,L4,Corridor,41.381839,2.184813
+425,Passeig de Gràcia,L4,Interchange,41.391631,2.165373
+126,Catalunya,L1,Interchange,41.387543,2.169533
+130,Glòries,L1,Corridor,41.402305,2.187563
+523,Sagrada Família,L5,Interchange,41.403718,2.173094
+521,Diagonal,L5,Interchange,41.395388,2.160597
+518,Sants Estació,L5,Interchange,41.381626,2.141018

@@ -1,0 +1,46 @@
+// TransitOpsDashboard tile queries (Lab 04). Paste one per tile.
+// Parameter used: _line (string, multiple selection, source query: LinesDim | distinct LineCode | order by LineCode asc)
+
+// T1 - Map: longest current wait per stop  (Visual: Map; Lat/Lon columns; Size = LongestWaitMin)
+BusNextArrivalLatest
+| where isnotnull(Lat) and isnotnull(Lon)
+| summarize LongestWaitMin = max(MinutesToArrival), Lines = strcat_array(make_set(LineCode), ", ")
+          by StopCode, StopName, Zone, Lat, Lon
+| project StopName, Zone, Lines, LongestWaitMin, Lat, Lon
+
+// T2 - Time chart: average wait by line, 5-minute bins, last 2 hours  (X = PolledAtUtc, Y = AvgWaitMin, Series = LineCode)
+BusArrivalsEnriched
+| where PolledAtUtc > ago(2h) and Rank == 1
+| where isempty(_line) or LineCode in (_line)
+| summarize AvgWaitMin = avg(MinutesToArrival) by bin(PolledAtUtc, 5m), LineCode
+
+// T3 - Table: next buses at the venue
+BusNextArrivalLatest
+| where Zone == "Venue"
+| where isempty(_line) or LineCode in (_line)
+| project Stop = StopName, Line = LineCode, To = Destination, Minutes = MinutesToArrival,
+          AsOf = datetime_utc_to_local(PolledAtUtc, 'Europe/Madrid')
+| order by Minutes asc
+
+// T4 - KPI: number of stops whose next bus is more than 12 minutes away  (Visual: KPI, Number, higher is worse)
+BusNextArrivalLatest
+| where MinutesToArrival > 12
+| summarize StopsWaiting = dcount(StopCode)
+
+// T5 - [metro] Table: next trains at El Maresme | Fòrum (needs MetroArrivalsFlat() from Lab 03 Part F)
+MetroArrivalsFlat()
+| where Rank == 1
+| summarize arg_max(PolledAtUtc, *) by StationCode, RouteId
+| lookup kind=leftouter MetroStationsDim on StationCode
+| where StationName has "Maresme"
+| project Line = LineCode, Direction, Minutes = round(SecondsToArrival / 60.0, 1)
+| order by Minutes asc
+
+// T6 - Column chart: bunching observations per line, last hour
+BusArrivalsEnriched
+| where PolledAtUtc > ago(1h)
+| summarize Next = minif(MinutesToArrival, Rank == 1), Following = minif(MinutesToArrival, Rank == 2)
+          by PolledAtUtc, StopCode, LineCode
+| where isnotnull(Following) and Following - Next <= 2
+| summarize Bunched = count() by LineCode
+| order by Bunched desc
