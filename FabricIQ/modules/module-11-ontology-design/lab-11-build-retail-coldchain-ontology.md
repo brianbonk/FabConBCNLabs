@@ -25,7 +25,7 @@ If Step 1 below doesn't show **Ontology (preview)** as a search result under **+
 
 1. Confirm with your neighbor whether they see it — if it's isolated to your account, it may be a permissions issue (see the Contributor-role checklist item above) rather than a tenant setting issue.
 2. If it's affecting the room broadly, flag it to the facilitator immediately. See [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md) for the pre-recorded walkthrough and static screenshot fallback for this specific module.
-3. After the workshop, see [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) section 1 and have your tenant admin enable **Enable Ontology item (preview)** in the admin portal's tenant settings.
+3. After the workshop, see [Ontology required tenant settings](https://learn.microsoft.com/fabric/iq/ontology/overview-tenant-settings) and have your tenant admin enable **Enable Ontology item (preview)** in the admin portal's tenant settings.
 
 </details>
 

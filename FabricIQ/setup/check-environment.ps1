@@ -14,7 +14,7 @@ if (-not $python) {
     $python = Get-Command python -ErrorAction SilentlyContinue
 }
 if (-not $python) {
-    Write-Error "python3 (or python) was not found on your PATH. Install Python 3.10-3.13 (see ..\prerequisites\PREREQUISITES.md, section 4) and re-run."
+    Write-Error "python3 (or python) was not found on your PATH. Install Python 3.10-3.13 (see ..\prerequisites\PREREQUISITES.md, section 1) and re-run."
     exit 1
 }
 

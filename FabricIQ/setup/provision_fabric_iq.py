@@ -255,7 +255,7 @@ def run(cmd: list[str], *, dry_run: bool = False, allow_dry_run_execute: bool = 
     except FileNotFoundError as exc:
         raise ProvisioningError(
             f"Command not found: {cmd[0]}",
-            hint=f"Is '{cmd[0]}' installed and on your PATH? See {PREREQUISITES_PATH}, section 4.",
+            hint=f"Is '{cmd[0]}' installed and on your PATH? See {PREREQUISITES_PATH}, section 1.",
         ) from exc
     return result
 
@@ -286,7 +286,7 @@ def check_python_version() -> None:
         raise ProvisioningError(
             f"Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]}+ is required "
             f"(found {sys.version_info.major}.{sys.version_info.minor}).",
-            hint=f"Install a newer Python 3 and re-run. See {PREREQUISITES_PATH}, section 4.",
+            hint=f"Install a newer Python 3 and re-run. See {PREREQUISITES_PATH}, section 1.",
         )
     print(f"Python {sys.version_info.major}.{sys.version_info.minor} OK")
 
@@ -298,7 +298,7 @@ def check_fab_installed(dry_run: bool) -> str:
             "Fabric CLI ('fab') was not found or did not respond to --version.",
             hint=(
                 f"Install it with:  pip install ms-fabric-cli>={'.'.join(map(str, MIN_FAB_VERSION))}\n"
-                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 4."
+                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 1."
             ),
         )
     version = result.stdout.strip()
@@ -319,7 +319,7 @@ def check_fab_installed(dry_run: bool) -> str:
             f"(need {'.'.join(map(str, MIN_FAB_VERSION))}+).",
             hint=(
                 f"Upgrade with:  pip install -U ms-fabric-cli>={'.'.join(map(str, MIN_FAB_VERSION))}\n"
-                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 4."
+                f"    Then confirm with `fab --version`. See {PREREQUISITES_PATH}, section 1."
             ),
         )
 
@@ -350,7 +350,7 @@ def ensure_authenticated(dry_run: bool, non_interactive: bool) -> None:
             "cannot open an interactive login prompt.",
             hint=(
                 "Run `fab auth login` yourself first (or drop --non-interactive), then re-run this script.\n"
-                f"    If the browser/device-code flow doesn't complete, see {PREREQUISITES_PATH}, section 4 (VPN/proxy caveats)."
+                f"    If the browser/device-code flow doesn't complete, try a different network (e.g. a phone hotspot) or flag it to the facilitator."
             ),
         )
 
@@ -367,13 +367,13 @@ def ensure_authenticated(dry_run: bool, non_interactive: bool) -> None:
             "`fab auth login` did not complete successfully.",
             hint=(
                 "If you're on a corporate VPN/proxy, the browser or device-code flow may be blocked. "
-                f"See {PREREQUISITES_PATH}, section 4."
+                "Try a different network (e.g. a phone hotspot) or flag it to the facilitator."
             ),
         )
     if not is_authenticated(dry_run=False):
         raise ProvisioningError(
             "Still not signed in after `fab auth login` reported success.",
-            hint=f"Try `fab auth login` manually and inspect the output. See {PREREQUISITES_PATH}, sections 3-4.",
+            hint=f"Try `fab auth login` manually and inspect the output. If the venue network blocks it, try a phone hotspot or flag it to the facilitator.",
         )
     print("Signed in successfully.")
 
@@ -418,7 +418,7 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
             "Could not list capacities (`fab -c \"ls .capacities -l\"` failed).",
             hint=(
                 "This usually means your account has no visible/eligible Fabric capacity. "
-                f"See {PREREQUISITES_PATH}, section 2."
+                f"Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
             ),
         )
 
@@ -449,7 +449,7 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
             "No capacities were returned by the Fabric CLI.",
             hint=(
                 "You need Contributor+ on at least one non-trial Fabric capacity (F2+/P1+). "
-                f"See {PREREQUISITES_PATH}, section 2."
+                f"Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
             ),
         )
     return capacities
@@ -493,7 +493,7 @@ def pick_capacity(
             "\n*** WARNING: the selected capacity looks like a TRIAL capacity. ***\n"
             "Fabric IQ's Ontology/Graph preview features are not supported on trial\n"
             "(FT1) capacities. Later modules in this workshop WILL fail on this capacity.\n"
-            f"See {PREREQUISITES_PATH}, section 1."
+            f"Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
         )
         if force:
             print("--force given: proceeding with the trial capacity anyway.")
@@ -505,7 +505,7 @@ def pick_capacity(
         elif not confirm("Proceed with this trial capacity anyway? (Ontology/Agent labs will not work)"):
             raise ProvisioningError(
                 "Aborted: no non-trial capacity was selected.",
-                hint=f"See {PREREQUISITES_PATH}, section 1 for how to get a non-trial capacity.",
+                hint=f"Ask the facilitator for a non-trial capacity.",
             )
 
     print(f"Using capacity: {chosen.name}")
@@ -557,7 +557,7 @@ def create_or_reuse_workspace(
             f"Failed to create workspace '{name}': {result.stderr.strip() or result.stdout.strip()}",
             hint=(
                 "Common causes: insufficient workspace-creation rights, or a name collision that "
-                f"wasn't caught by the pre-check above. See {PREREQUISITES_PATH}, section 2."
+                f"wasn't caught by the pre-check above. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
             ),
         )
     print(f"Workspace '{name}' created, pinned to capacity '{capacity.name}'.")
@@ -601,7 +601,7 @@ def resolve_artifact_root(dry_run: bool) -> Path:
             f"git clone of {DEFAULT_REPO_URL} failed: {result.stderr.strip()}",
             hint=(
                 "Check your network/VPN access to GitHub, or run this script from inside an "
-                f"existing checkout of the repo instead. See {PREREQUISITES_PATH}, section 4."
+                f"existing checkout of the repo instead. See {PREREQUISITES_PATH}, section 1."
             ),
         )
     cloned_root = tmp_dir / REPO_SUBDIR_TO_FABRICIQ
@@ -1328,7 +1328,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             if not ok:
                 print(f"  WARNING: failed to provision {item.name}.{item.type}: {detail}")
                 if "not enabled" in detail.lower() or "preview" in detail.lower() or "tenant setting" in detail.lower():
-                    print(f"  HINT: this looks like a tenant preview-setting gap. See {PREREQUISITES_PATH}, section 1.")
+                    print(f"  HINT: this looks like a tenant preview-setting gap. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator.")
 
         print("\n--- Step 7/9: KQL schema ---")
         kqldb_provisioned = any(

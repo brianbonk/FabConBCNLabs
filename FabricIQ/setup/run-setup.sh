@@ -13,7 +13,7 @@ set -euo pipefail
 
 if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 was not found on your PATH." >&2
-    echo "Install Python 3.10-3.13 (see ../prerequisites/PREREQUISITES.md, section 4) and re-run." >&2
+    echo "Install Python 3.10-3.13 (see ../prerequisites/PREREQUISITES.md, section 1) and re-run." >&2
     exit 1
 fi
 

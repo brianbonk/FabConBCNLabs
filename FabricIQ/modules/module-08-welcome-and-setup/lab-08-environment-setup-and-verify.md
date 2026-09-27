@@ -15,8 +15,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
 ## Before you begin
 
 - [ ] Your laptop has admin rights to install software (Python packages).
-- [ ] You have your Microsoft-provided sign-in for this event ready (see
-      `prerequisites/PREREQUISITES.md` §2 for how these are distributed) — this is **not** your own
+- [ ] You have your Microsoft-provided sign-in for this event ready — this is **not** your own
       organization's Fabric account.
 
 ## Part A — Set up your environment (skip if you already did this)
@@ -39,20 +38,20 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    > ✅ Expected result: a Git version prints, and `Python 3.10.x` through `3.13.x`. **Python 3.14 is too
    > new** — the Fabric CLI this workshop depends on doesn't support it yet. If either is missing or your
    > Python is outside that range, see [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md)
-   > §4 for an OS-specific install command, then re-check before continuing.
+   > §1 for an OS-specific install command, then re-check before continuing.
 
 2. **Clone this repository**, if you don't already have it on this machine:
 
    ```bash
-   git clone https://github.com/brianbonk/FabConIQLabs
+   git clone https://github.com/brianbonk/FabConBCNLabs
    cd FabConIQLabs
    ```
 
    <details>
    <summary>Troubleshooting</summary>
 
-   If `git clone` hangs or fails, you may be on a restrictive venue network blocking it — see
-   [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) §3, or ask a neighbor to
+   If `git clone` hangs or fails, you may be on a restrictive venue network blocking it — try a
+   different network (phone hotspot) if one's available, or ask a neighbor to
    share the folder directly for now and sort out network access at the next break.
    </details>
 
@@ -121,8 +120,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    <summary>Troubleshooting — sign-in hangs or fails</summary>
 
    If the browser/device-code flow doesn't complete, you're likely on a restrictive venue network. Try a
-   different network (phone hotspot) if one's available, or pair with a neighbor for now — see
-   [`prerequisites/PREREQUISITES.md`](../../prerequisites/PREREQUISITES.md) §3.
+   different network (phone hotspot) if one's available, or pair with a neighbor for now and flag it to the facilitator.
    </details>
 
    <details>
