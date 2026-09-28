@@ -2,7 +2,8 @@
 """
 provision_fabric_iq.py -- Fabric IQ workshop environment provisioner.
 
-Creates a "Fabric IQ" Fabric workspace pinned to a non-trial capacity, and
+Creates a per-attendee "Fabric IQ - <user>" Fabric workspace pinned to a
+non-trial capacity, and
 provisions the five items (Lakehouse, Eventhouse, KQL database, Eventstream,
 Notebook) listed in manifest.yaml, via the Fabric CLI (`fab`).
 
@@ -12,7 +13,10 @@ WHAT THIS SCRIPT DOES:
     3. Lists your eligible capacities and has you pick one -- hard-blocking
        trial capacities unless explicitly overridden, since Fabric IQ's
        Ontology/Graph preview features are not supported there.
-    4. Creates (or reuses) a "Fabric IQ" workspace pinned to that capacity.
+    4. Creates (or reuses) a "Fabric IQ - <user>" workspace pinned to that
+       capacity. Workspace names are tenant-wide and every attendee shares
+       one tenant, so the default name is derived from the signed-in
+       account (e.g. jane.doe@contoso.com -> "Fabric IQ - jane-doe").
     5. Resolves where the `artifacts/` folder lives (local checkout, or a
        fresh `git clone` if this script was handed out standalone).
     6. Provisions the Lakehouse, Eventhouse, KQL database, Eventstream, and
@@ -64,7 +68,7 @@ WHAT THIS SCRIPT DELIBERATELY DOES NOT DO:
 USAGE:
     python provision_fabric_iq.py                          # interactive
     python provision_fabric_iq.py --dry-run                # preview only, no changes
-    python provision_fabric_iq.py --non-interactive --capacity "My Capacity" --workspace-name "Fabric IQ"
+    python provision_fabric_iq.py --non-interactive --capacity "My Capacity" --workspace-name "Fabric IQ - presenter"
     python provision_fabric_iq.py --force                  # reuse/overwrite existing workspace+items
     python provision_fabric_iq.py --skip-kql-schema        # skip the KQL schema step entirely
 
@@ -95,7 +99,10 @@ except ImportError:
 # =============================================================================
 
 MIN_PYTHON = (3, 10)
-DEFAULT_WORKSPACE_NAME = "Fabric IQ"
+# Every attendee signs in to the same event tenant, where workspace names
+# must be unique -- so the default name gets a per-user suffix (see
+# default_workspace_name()) rather than being a fixed "Fabric IQ".
+WORKSPACE_NAME_PREFIX = "Fabric IQ"
 
 # This script was built against and only ever tested live against fab
 # 1.7.0. `--output_format json` exists from fab 1.1.0 (2025-09-10) onward,
@@ -337,6 +344,50 @@ def is_authenticated(dry_run: bool) -> bool:
     # prints "Logged in to ..." when authenticated, non-zero otherwise.
     result = fab(["auth", "status"], dry_run=dry_run, allow_dry_run_execute=True)
     return result.returncode == 0
+
+
+def get_signed_in_account() -> Optional[str]:
+    """The signed-in account's UPN, parsed from `fab auth status` (confirmed
+    live against fab 1.7.0: it prints an "Account: user@domain" line).
+    None if it can't be determined."""
+    result = fab(["auth", "status"], allow_dry_run_execute=True)
+    if result.returncode != 0:
+        return None
+    match = re.search(r"^\s*Account:\s*(\S+)", result.stdout, re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def default_workspace_name(account: Optional[str]) -> Optional[str]:
+    """"Fabric IQ - <local part of UPN>", with anything but letters, digits,
+    '-' and '_' collapsed to '-'. Dots in particular are replaced: `fab`
+    paths use a ".Workspace" suffix, so keeping the name dot-free avoids any
+    ambiguity there."""
+    if not account:
+        return None
+    local_part = account.split("@", 1)[0]
+    slug = re.sub(r"[^A-Za-z0-9_-]+", "-", local_part).strip("-")
+    return f"{WORKSPACE_NAME_PREFIX} - {slug}" if slug else None
+
+
+def resolve_workspace_name(requested: Optional[str], *, non_interactive: bool) -> str:
+    if requested:
+        return requested
+    name = default_workspace_name(get_signed_in_account())
+    if name:
+        print(f"Using workspace name '{name}' (derived from your signed-in account).")
+        return name
+    if non_interactive:
+        raise ProvisioningError(
+            "Could not determine the signed-in account to derive a unique workspace name.",
+            hint="Re-run with --workspace-name \"Fabric IQ - <your name>\".",
+        )
+    while True:
+        entered = input(
+            "Could not determine your signed-in account. Enter a unique workspace name "
+            f"(e.g. '{WORKSPACE_NAME_PREFIX} - <your name>'): "
+        ).strip()
+        if entered:
+            return entered
 
 
 def ensure_authenticated(dry_run: bool, non_interactive: bool) -> None:
@@ -609,7 +660,7 @@ def workspace_exists(name: str, dry_run: bool) -> bool:
     if result.returncode != 0:
         return False
     target = f"{name}.Workspace"
-    return any(target in line for line in result.stdout.splitlines())
+    return any(line.strip() == target for line in result.stdout.splitlines())
 
 
 def fab_api(
@@ -750,8 +801,9 @@ def create_or_reuse_workspace(
             raise ProvisioningError(
                 f"Failed to create workspace '{name}': {result.stderr.strip() or result.stdout.strip()}",
                 hint=(
-                    "Common causes: insufficient workspace-creation rights, or a name collision that "
-                    f"wasn't caught by the pre-check above. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
+                    "Common causes: insufficient workspace-creation rights, or a name collision with "
+                    "another user's workspace you can't see (workspace names are tenant-wide) -- "
+                    "re-run with a different --workspace-name. Otherwise, flag this to the facilitator."
                 ),
             )
         print(
@@ -775,8 +827,9 @@ def create_or_reuse_workspace(
         raise ProvisioningError(
             f"Failed to create workspace '{name}': {describe_api_error(status, body)}",
             hint=(
-                "Common causes: insufficient workspace-creation rights, or a name collision that "
-                f"wasn't caught by the pre-check above. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
+                "Common causes: insufficient workspace-creation rights, or a name collision with "
+                "another user's workspace you can't see (workspace names are tenant-wide) -- "
+                "re-run with a different --workspace-name. Otherwise, flag this to the facilitator."
             ),
         )
 
@@ -1478,7 +1531,7 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--non-interactive",
         action="store_true",
-        help="Never prompt. Requires --capacity and --workspace-name. Intended for presenter testing/CI.",
+        help="Never prompt. Requires --capacity. Intended for presenter testing/CI.",
     )
     parser.add_argument(
         "--capacity",
@@ -1487,8 +1540,9 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--workspace-name",
-        default=DEFAULT_WORKSPACE_NAME,
-        help="Name of the workspace to create/reuse.",
+        default=None,
+        help=f"Name of the workspace to create/reuse. Default: '{WORKSPACE_NAME_PREFIX} - <user>', "
+        "derived from the signed-in account so attendees sharing a tenant don't collide.",
     )
     parser.add_argument(
         "--force",
@@ -1529,6 +1583,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         print("\n--- Step 2/9: Authentication ---")
         ensure_authenticated(args.dry_run, args.non_interactive)
 
+        workspace_name = resolve_workspace_name(args.workspace_name, non_interactive=args.non_interactive)
+
         print("\n--- Step 3/9: Capacity selection ---")
         capacities = list_capacities(args.dry_run)
         capacity = pick_capacity(
@@ -1540,7 +1596,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
         print("\n--- Step 4/9: Workspace creation ---")
         workspace_path = create_or_reuse_workspace(
-            args.workspace_name,
+            workspace_name,
             capacity,
             dry_run=args.dry_run,
             non_interactive=args.non_interactive,
@@ -1580,7 +1636,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         verify_results = verify_items(workspace_path, items, args.dry_run)
 
         print("\n--- Step 9/9: Summary ---")
-        print_summary(args.workspace_name, capacity, import_results, verify_results, kql_result)
+        print_summary(workspace_name, capacity, import_results, verify_results, kql_result)
 
         any_failed = (
             any(not ok for _, ok, _ in import_results)

@@ -19,7 +19,7 @@ top to reason over both.
 | Folder | Contents |
 |---|---|
 | `prerequisites/` | The short pre-event checklist — read this first. |
-| `setup/` | The provisioning script (`provision_fabric_iq.py`) that creates your "Fabric IQ" workspace and its RTI plumbing (Lakehouse, Eventhouse, Eventstream, notebook) via the Fabric CLI (`fab`). |
+| `setup/` | The provisioning script (`provision_fabric_iq.py`) that creates your own "Fabric IQ - <user>" workspace and its RTI plumbing (Lakehouse, Eventhouse, Eventstream, notebook) via the Fabric CLI (`fab`). |
 | `artifacts/` | Fabric item definitions and sample data the provisioning script uses. |
 | `modules/` | Hands-on lab content, one per module, in delivery order. (Theory content is presented live by the facilitator and isn't included here.) |
 | `assets/screenshots/` | Reference screenshots the labs link to for each step. |

@@ -137,7 +137,9 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
      today while that gets sorted out — see [`docs/risk-fallback-plan.md`](../../docs/risk-fallback-plan.md).
    </details>
 
-5. **Let the script finish.** It creates a "Fabric IQ" workspace and provisions the Lakehouse, Eventhouse,
+5. **Let the script finish.** It creates your own **Fabric IQ - &lt;your username&gt;** workspace (e.g.
+   `jane.doe@contoso.com` gets **Fabric IQ - jane-doe** — everyone shares one tenant, so each attendee
+   gets a uniquely named workspace) and provisions the Lakehouse, Eventhouse,
    KQL database, Eventstream, and Notebook items, then applies the KQL database's schema — all using the
    one sign-in from step 4, no further prompts.
 
@@ -166,14 +168,16 @@ Continue from here whether you just finished Part A or arrived with your workspa
    > ✅ Expected result: the Fabric portal home page loads, showing your recent items and a workspace list
    > in the left navigation.
 
-7. **Click** **Workspaces** in the left navigation, then **click** the **Fabric IQ** workspace.
+7. **Click** **Workspaces** in the left navigation, then **click** your **Fabric IQ - &lt;your username&gt;**
+   workspace. From here on, the labs call it simply the "Fabric IQ" workspace.
 
    ![Step 7](../../assets/screenshots/lab-08/step-02.png)
 
    <details>
    <summary>Troubleshooting</summary>
 
-   If you don't see a workspace named exactly **Fabric IQ** in the list, Part A either wasn't run,
+   If you don't see a workspace named **Fabric IQ - &lt;your username&gt;** in the list (the script prints
+   the exact name in its summary), Part A either wasn't run,
    didn't finish, or created the workspace under a different account than the one you're signed in with
    now. Go back and re-run `python3 provision_fabric_iq.py` (**Windows:** `python provision_fabric_iq.py`),
    or see the "If your environment isn't ready" section below.

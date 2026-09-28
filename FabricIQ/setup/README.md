@@ -126,7 +126,7 @@ workspace and provision the five items.
 | `--dry-run` | Print every command that would run, without creating or importing anything. Read-only checks (version, auth, capacity listing) still actually run so you see real state. |
 | `--non-interactive` | Never prompt. **Requires** `--capacity`. Intended for presenter testing/CI, not for attendees. |
 | `--capacity <name>` | Exact capacity name to use, skipping the interactive picker. |
-| `--workspace-name <name>` | Name of the workspace to create/reuse (default: `Fabric IQ`). |
+| `--workspace-name <name>` | Name of the workspace to create/reuse. Default: `Fabric IQ - <user>`, derived from the signed-in account's UPN (e.g. `jane.doe@contoso.com` → `Fabric IQ - jane-doe`), because all attendees share one tenant and workspace names must be unique in it. |
 | `--force` | Reuse an existing workspace without prompting, and override the trial-capacity warning. Use with care. |
 | `--skip-kql-schema` | Don't run `ColdChainKQLDB.kql` against the KQL database. Use this if it's already been applied, or you're re-testing an earlier step and don't need it re-run. |
 
@@ -172,7 +172,8 @@ check there first for the underlying fix.
 | "No capacities were returned by the Fabric CLI" | Your account has no visible/eligible Fabric capacity, or lacks Contributor+ role on one. | Accounts and capacities are provided by Microsoft for this event — flag it to the facilitator. |
 | "Capacity looks like a trial capacity" warning | You selected (or only have) an FT1/trial capacity. | Use a non-trial F2+/P1+ capacity — trial capacities don't support Ontology/Graph/Data Agent features at all, and later modules will fail. Flag it to the facilitator. Do not use `--force` to bypass this unless you fully understand later modules won't work. |
 | An import fails with an error mentioning "preview" or "not enabled" | A tenant-level preview setting (Ontology/Data Agent) hasn't been enabled by your Fabric admin. | This can't be fixed live — it needs your tenant admin to enable the setting 2+ weeks ahead of the event. Flag it to the facilitator. |
-| "Workspace already exists" prompt / `--force` needed | A previous run (or another attendee) already created a workspace with this name. | Reuse it (default prompt), pick a different `--workspace-name`, or pass `--force` to reuse without prompting. |
+| "Workspace already exists" prompt / `--force` needed | A previous run of yours already created your workspace. | Reuse it (default prompt), or pass `--force` to reuse without prompting. |
+| "Failed to create workspace" mentioning a name collision | Another user already owns a workspace with that name (workspace names are tenant-wide, and you can't see workspaces you're not a member of). | Re-run with a different `--workspace-name`, e.g. `--workspace-name "Fabric IQ - jane-doe-2"`. |
 | An item import reports a name collision | An item with that name already exists in the target workspace (e.g. from a partial previous run). | Re-run with `--force` to overwrite, or delete the conflicting item manually first. |
 | Post-import verification shows a MISSING item | The import step failed silently or the item type isn't yet covered by `fab import` in your CLI version. | Check the printed error for that item, and try the manual `fab import` command the summary prints for you. |
 
