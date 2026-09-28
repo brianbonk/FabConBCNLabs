@@ -16,6 +16,7 @@ You might have received an IP address to access a VM in Azure.
 To login, use remote desktop on your laptop and connect to the given ip address
 
 For username use: ./azureuser
+
 For password use: Password123!
 
 (with the exclamation mark)
