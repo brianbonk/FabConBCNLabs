@@ -10,6 +10,16 @@ to your tenant admin" step anymore.
 The one thing each attendee needs to do ahead of time is make sure Git and Python are installed on
 their laptop.
 
+## 0. VM if you have recieved one
+
+You might have received an IP address to access a VM in Azure.
+To login, use remote desktop on your laptop and connect to the given ip address
+
+For username use: ./azureuser
+For password use: Password123!
+
+(with the exclamation mark)
+
 ## 1. Before you clone: Git and Python
 
 Every attendee needs **Git** (to clone this repo) and **Python 3.10-3.13** (to run the setup scripts) on
