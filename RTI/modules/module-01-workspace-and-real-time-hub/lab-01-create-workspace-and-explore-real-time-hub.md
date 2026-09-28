@@ -19,7 +19,7 @@ Microsoft-provided account for this event, and that account has access to a work
 
 ### Part A — Create the workspace
 
-1. **Click** **Workspaces** in the left navigation, then find your workspace - should be similar to **EVNT--xxx@fabconbar26.onmicrosoft.com**. Where the xxx is the same as your assigned username.
+1. **Click** **Workspaces** in the left navigation, then find your workspace - should be similar to **evnt-user-xxx@fabconbar26.onmicrosoft.com**. Where the xxx is the same as your assigned username.
 
    ![Step 1](../../assets/screenshots/lab-01/step-01.png)
 
