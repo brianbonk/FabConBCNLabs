@@ -79,7 +79,8 @@ workspace and provision the five items.
 
 1. Preflight-checks Python (3.10+) and the Fabric CLI (`fab --version`).
 2. Confirms you're signed in to Fabric, or runs `fab auth login` for you.
-3. Lists your eligible capacities and has you pick one. **Trial capacities
+3. Lists your eligible capacities — Fabric (F-SKU) capacities and Power BI
+   Premium (P-SKU) capacities — and has you pick one. **Trial capacities
    are hard-blocked** unless you explicitly override the warning (or pass
    `--force`) — Fabric IQ's Ontology/Graph preview features don't work on
    trial (FT1) capacities.
@@ -227,6 +228,22 @@ check there first for the underlying fix.
   reading that module directly in the installed package. Trial-SKU
   detection (`is_trial`) still checks the `sku` field (plus the formatted
   summary string) for keywords (`trial`, `ft1`, `free`).
+- **Power BI Premium capacities**: `list_capacities()` also calls
+  `fab api -A powerbi capacities` (the Power BI REST API,
+  `GET /v1.0/myorg/capacities`) and merges in any F/P-SKU capacity whose ID
+  wasn't already in the Fabric listing — Power BI Premium capacities can be
+  missing from the Fabric REST API that `fab ls .capacities` reads. PPU
+  (`PP*`) and Embedded (`A*`/`EM*`) SKUs are skipped since they can't host
+  Fabric items. Because `fab create -P capacityname=...` resolves names via
+  that same Fabric listing, a workspace on a Premium-only capacity (or one
+  where `fab create` fails) is created in two steps instead: create the
+  workspace with no capacity, then assign it via the Fabric
+  `assignToCapacity` API, falling back to the Power BI
+  `groups/{id}/AssignToCapacity` API. If both assignments fail, the empty
+  workspace is deleted again and the real API error is printed. A reused
+  workspace that isn't on the chosen capacity (e.g. left behind by an
+  earlier failed run) is re-assigned too. The Power BI capacity lookup is
+  non-fatal: if it fails, the Fabric listing is used as-is.
   `workspace_exists()` and `verify_items()` still parse `fab`'s text output
   and share the same theoretical wrapping risk for very long workspace/item
   names — not yet hit live, so not converted to JSON output here, but worth

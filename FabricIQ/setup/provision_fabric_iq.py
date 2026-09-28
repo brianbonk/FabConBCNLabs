@@ -388,6 +388,14 @@ class Capacity:
     name: str
     sku: str
     raw_line: str
+    id: str = ""
+    # "fabric" = listed by `fab ls .capacities` (the Fabric REST API), so
+    # `fab create ... -P capacityname=<name>` can resolve it by name.
+    # "powerbi" = only listed by the Power BI REST API (typically a Power BI
+    # Premium P-SKU capacity); `fab` can't resolve it by name, so the
+    # workspace is created by capacity ID instead -- see
+    # create_or_reuse_workspace().
+    source: str = "fabric"
 
     @property
     def is_trial(self) -> bool:
@@ -413,7 +421,49 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
     result = fab_c(
         "ls .capacities -l --output_format json", dry_run=dry_run, allow_dry_run_execute=True
     )
-    if result.returncode != 0:
+    fabric_listing_failed = result.returncode != 0
+
+    capacities: list[Capacity] = []
+    if not fabric_listing_failed:
+        try:
+            rows = json.loads(result.stdout)["result"]["data"] or []
+        except (json.JSONDecodeError, KeyError, TypeError) as exc:
+            raise ProvisioningError(
+                "Could not parse the capacity listing returned by the Fabric CLI.",
+                hint=(
+                    "This may mean an incompatible `fab` CLI version changed its JSON output shape. "
+                    "Confirm with `fab --version` and try `pip install -U ms-fabric-cli`."
+                ),
+            ) from exc
+
+        for row in rows:
+            if not isinstance(row, dict) or not row.get("name"):
+                continue
+            raw_line = (
+                f"{row['name']}  sku={row.get('sku', '?')}  "
+                f"region={row.get('region', '?')}  state={row.get('state', '?')}  "
+                f"resourceGroup={row.get('resourceGroup', '?')}  admins={row.get('admins', [])}"
+            )
+            capacities.append(
+                Capacity(
+                    name=row["name"],
+                    sku=row.get("sku") or "",
+                    raw_line=raw_line,
+                    id=(row.get("id") or "").lower(),
+                )
+            )
+
+    # Power BI Premium (P-SKU) capacities don't reliably show up in the Fabric
+    # REST API that `fab ls .capacities` reads, but they do in the Power BI
+    # REST API (GET /v1.0/myorg/capacities). Merge those in so attendees
+    # handed a Premium capacity can still pick it.
+    known_ids = {c.id for c in capacities if c.id}
+    for cap in list_powerbi_capacities():
+        if cap.id not in known_ids:
+            capacities.append(cap)
+            known_ids.add(cap.id)
+
+    if fabric_listing_failed and not capacities:
         raise ProvisioningError(
             "Could not list capacities (`fab -c \"ls .capacities -l\"` failed).",
             hint=(
@@ -421,28 +471,6 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
                 f"Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
             ),
         )
-
-    try:
-        rows = json.loads(result.stdout)["result"]["data"] or []
-    except (json.JSONDecodeError, KeyError, TypeError) as exc:
-        raise ProvisioningError(
-            "Could not parse the capacity listing returned by the Fabric CLI.",
-            hint=(
-                "This may mean an incompatible `fab` CLI version changed its JSON output shape. "
-                "Confirm with `fab --version` and try `pip install -U ms-fabric-cli`."
-            ),
-        ) from exc
-
-    capacities: list[Capacity] = []
-    for row in rows:
-        if not isinstance(row, dict) or not row.get("name"):
-            continue
-        raw_line = (
-            f"{row['name']}  sku={row.get('sku', '?')}  "
-            f"region={row.get('region', '?')}  state={row.get('state', '?')}  "
-            f"resourceGroup={row.get('resourceGroup', '?')}  admins={row.get('admins', [])}"
-        )
-        capacities.append(Capacity(name=row["name"], sku=row.get("sku") or "", raw_line=raw_line))
 
     if not capacities:
         raise ProvisioningError(
@@ -455,6 +483,60 @@ def list_capacities(dry_run: bool) -> list[Capacity]:
     return capacities
 
 
+def list_powerbi_capacities() -> list[Capacity]:
+    """Capacities visible through the Power BI REST API, which -- unlike the
+    Fabric REST API behind `fab ls .capacities` -- includes Power BI Premium
+    (P-SKU) capacities. Non-fatal: any failure here just means no extra
+    capacities are added, and the Fabric listing is used as-is."""
+    result = fab(
+        ["api", "-A", "powerbi", "capacities", "--output_format", "json"],
+        allow_dry_run_execute=True,
+    )
+    if result.returncode != 0:
+        print("  (Could not query Power BI capacities -- continuing with the Fabric capacity list only.)")
+        return []
+    try:
+        response = json.loads(result.stdout)["result"]["data"][0]
+        if response.get("status_code") != 200:
+            print(
+                f"  (Power BI capacities query returned HTTP {response.get('status_code')} -- "
+                "continuing with the Fabric capacity list only.)"
+            )
+            return []
+        rows = response["text"].get("value") or []
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError, AttributeError):
+        print("  (Could not parse the Power BI capacities response -- continuing with the Fabric capacity list only.)")
+        return []
+
+    capacities: list[Capacity] = []
+    for row in rows:
+        if not isinstance(row, dict) or not row.get("id") or not row.get("displayName"):
+            continue
+        sku = (row.get("sku") or "").upper()
+        # Only P (Power BI Premium) and F (Fabric) SKUs can host Fabric items.
+        # PPU ("PP3") and Embedded A/EM SKUs can't, so they're left out rather
+        # than offered as a choice that fails later.
+        if not (sku.startswith("F") or (sku.startswith("P") and not sku.startswith("PP"))):
+            continue
+        if row.get("capacityUserAccessRight") == "None":
+            continue
+        raw_line = (
+            f"{row['displayName']}  sku={row.get('sku', '?')}  "
+            f"region={row.get('region', '?')}  state={row.get('state', '?')}  "
+            f"source=Power BI Premium  admins={row.get('admins', [])}"
+        )
+        capacities.append(
+            Capacity(
+                name=row["displayName"],
+                sku=row.get("sku") or "",
+                raw_line=raw_line,
+                id=row["id"].lower(),
+                source="powerbi",
+            )
+        )
+    return capacities
+
+
 def pick_capacity(
     capacities: list[Capacity],
     *,
@@ -463,7 +545,12 @@ def pick_capacity(
     force: bool,
 ) -> Capacity:
     if requested_name:
-        matches = [c for c in capacities if c.name == requested_name]
+        # `fab ls` names carry a ".Capacity" suffix, Power BI ones don't --
+        # accept the bare display name for either.
+        matches = [
+            c for c in capacities
+            if requested_name in (c.name, c.name.removesuffix(".Capacity"))
+        ]
         if not matches:
             available = ", ".join(c.name for c in capacities)
             raise ProvisioningError(
@@ -525,6 +612,97 @@ def workspace_exists(name: str, dry_run: bool) -> bool:
     return any(target in line for line in result.stdout.splitlines())
 
 
+def fab_api(
+    endpoint: str,
+    *,
+    method: str = "get",
+    body: Optional[dict] = None,
+    audience: Optional[str] = None,
+    dry_run: bool = False,
+    read_only: bool = False,
+) -> tuple[Optional[int], object]:
+    """Call a REST endpoint through `fab api` and return (HTTP status, parsed
+    response body). `fab api` exits 0 even on HTTP 4xx/5xx -- the real status
+    is inside its JSON envelope -- so callers must check the status, not the
+    process return code. Returns (None, None) under --dry-run for mutating
+    calls, or if `fab` itself failed."""
+    args = ["api", "-X", method, endpoint, "--output_format", "json"]
+    if audience:
+        args[1:1] = ["-A", audience]
+    if body is not None:
+        args += ["-i", json.dumps(body)]
+    result = fab(args, dry_run=dry_run, allow_dry_run_execute=read_only)
+    if (dry_run and not read_only) or result.returncode != 0:
+        return None, (result.stderr.strip() or result.stdout.strip() or None)
+    try:
+        response = json.loads(result.stdout)["result"]["data"][0]
+        return response.get("status_code"), response.get("text")
+    except (json.JSONDecodeError, KeyError, IndexError, TypeError):
+        return None, result.stdout.strip()
+
+
+def describe_api_error(status: Optional[int], body: object) -> str:
+    """Turn a Fabric/Power BI error response into one readable line."""
+    if isinstance(body, dict):
+        err = body.get("error") if isinstance(body.get("error"), dict) else body  # Power BI nests it
+        parts = [str(err.get("errorCode") or err.get("code") or ""), str(err.get("message") or "")]
+        parts += [str(d.get("message", "")) for d in err.get("moreDetails") or [] if isinstance(d, dict)]
+        detail = " - ".join(p for p in parts if p)
+    else:
+        detail = str(body or "")
+    return f"HTTP {status}: {detail}" if status else detail or "unknown error"
+
+
+def find_workspace(name: str) -> Optional[dict]:
+    """Look up a workspace by display name via the Fabric REST API, returning
+    its JSON (id, capacityId, ...) or None."""
+    status, body = fab_api("workspaces", read_only=True)
+    if status != 200 or not isinstance(body, dict):
+        return None
+    return next(
+        (w for w in body.get("value") or [] if w.get("displayName") == name and w.get("type") == "Workspace"),
+        None,
+    )
+
+
+def assign_workspace_to_capacity(workspace_id: str, capacity_id: str, *, dry_run: bool) -> Optional[str]:
+    """Assign a workspace to a capacity. Returns None on success, or the error.
+
+    Tries the Fabric REST API first, then falls back to the Power BI REST API
+    (groups/{id}/AssignToCapacity), which is the long-standing route for
+    Power BI Premium (P-SKU) capacities and succeeds for users who hold the
+    Premium "Assign" permission even where the Fabric route is refused."""
+    status, body = fab_api(
+        f"workspaces/{workspace_id}/assignToCapacity",
+        method="post",
+        body={"capacityId": capacity_id},
+        dry_run=dry_run,
+    )
+    if dry_run or status in (200, 202):
+        return None
+    fabric_error = describe_api_error(status, body)
+    print(f"  Fabric capacity assignment failed ({fabric_error}); retrying via the Power BI API...")
+
+    status, body = fab_api(
+        f"groups/{workspace_id}/AssignToCapacity",
+        method="post",
+        body={"capacityId": capacity_id},
+        audience="powerbi",
+    )
+    if status in (200, 202):
+        return None
+    return f"Fabric API: {fabric_error}; Power BI API: {describe_api_error(status, body)}"
+
+
+def capacity_error_hint(capacity: Capacity) -> str:
+    return (
+        f"Capacity '{capacity.name}' (sku={capacity.sku or '?'}) rejected the assignment. Common causes: "
+        "you lack Contributor/'Assign' permission on the capacity, or the capacity is paused/suspended. "
+        "Accounts, capacities and tenant settings are provided by Microsoft for this event -- "
+        "show this error to the facilitator."
+    )
+
+
 def create_or_reuse_workspace(
     name: str,
     capacity: Capacity,
@@ -546,19 +724,71 @@ def create_or_reuse_workspace(
                 f"Aborted: workspace '{name}' already exists and reuse was declined.",
                 hint="Pass --workspace-name <other name> to create a differently-named workspace instead.",
             )
+        # A previous run may have left the workspace on shared (non-Premium)
+        # capacity -- e.g. created but then failed to assign. Make sure it's on
+        # the capacity chosen now, or every later step fails on item creation.
+        existing = find_workspace(name)
+        if existing and capacity.id and (existing.get("capacityId") or "").lower() != capacity.id:
+            print(f"Assigning existing workspace '{name}' to capacity '{capacity.name}'...")
+            error = assign_workspace_to_capacity(existing["id"], capacity.id, dry_run=dry_run)
+            if error:
+                raise ProvisioningError(
+                    f"Workspace '{name}' exists but could not be assigned to capacity '{capacity.name}': {error}",
+                    hint=capacity_error_hint(capacity),
+                )
         return workspace_path
 
-    result = fab(
-        ["create", workspace_path, "-P", f"capacityname={capacity.name}"],
-        dry_run=dry_run,
-    )
-    if not dry_run and result.returncode != 0:
+    if capacity.source == "fabric":
+        result = fab(
+            ["create", workspace_path, "-P", f"capacityname={capacity.name}"],
+            dry_run=dry_run,
+        )
+        if dry_run or result.returncode == 0:
+            print(f"Workspace '{name}' created, pinned to capacity '{capacity.name}'.")
+            return workspace_path
+        if not capacity.id:
+            raise ProvisioningError(
+                f"Failed to create workspace '{name}': {result.stderr.strip() or result.stdout.strip()}",
+                hint=(
+                    "Common causes: insufficient workspace-creation rights, or a name collision that "
+                    f"wasn't caught by the pre-check above. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
+                ),
+            )
+        print(
+            f"  `fab create` failed ({result.stderr.strip() or result.stdout.strip()}); "
+            "retrying as create-then-assign-capacity..."
+        )
+
+    # Power BI Premium capacities: `fab create -P capacityname=...` resolves
+    # the name through the Fabric capacities list (which a P-SKU capacity may
+    # be missing from), and creating a workspace directly on a P-SKU capacity
+    # through the Fabric API is refused for some users who can still assign
+    # workspaces to it. So: create the workspace with no capacity (only needs
+    # workspace-creation rights), then assign it -- with a Power BI API
+    # fallback -- and report the real error if that fails.
+    status, body = fab_api("workspaces", method="post", body={"displayName": name}, dry_run=dry_run)
+    if dry_run:
+        assign_workspace_to_capacity("<new-workspace-id>", capacity.id, dry_run=True)
+        print(f"Workspace '{name}' would be created and assigned to capacity '{capacity.name}'.")
+        return workspace_path
+    if status not in (200, 201) or not isinstance(body, dict) or not body.get("id"):
         raise ProvisioningError(
-            f"Failed to create workspace '{name}': {result.stderr.strip() or result.stdout.strip()}",
+            f"Failed to create workspace '{name}': {describe_api_error(status, body)}",
             hint=(
                 "Common causes: insufficient workspace-creation rights, or a name collision that "
                 f"wasn't caught by the pre-check above. Accounts, capacities and tenant settings are provided by Microsoft for this event -- flag this to the facilitator."
             ),
+        )
+
+    error = assign_workspace_to_capacity(body["id"], capacity.id, dry_run=False)
+    if error:
+        # Don't leave an empty, capacity-less workspace behind: a re-run would
+        # otherwise find and reuse it.
+        fab_api(f"workspaces/{body['id']}", method="delete")
+        raise ProvisioningError(
+            f"Created workspace '{name}' but could not assign it to capacity '{capacity.name}' "
+            f"(the empty workspace was removed again): {error}",
+            hint=capacity_error_hint(capacity),
         )
     print(f"Workspace '{name}' created, pinned to capacity '{capacity.name}'.")
     return workspace_path

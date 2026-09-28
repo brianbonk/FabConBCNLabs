@@ -113,7 +113,7 @@ The Ontology/Data Agent preview settings, a non-trial capacity, and Contributor 
    ```
 
    This prompts you to sign in (`fab auth login`) with your **Microsoft-provided account for this
-   event** if you aren't already, then lists your eligible Fabric capacities and asks you to pick one —
+   event** if you aren't already, then lists your eligible Fabric and Power BI Premium capacities and asks you to pick one —
    there should be exactly one, already assigned to you by Microsoft.
 
    <details>
