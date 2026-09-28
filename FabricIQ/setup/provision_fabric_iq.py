@@ -121,7 +121,7 @@ MIN_FAB_VERSION = (1, 7, 0)
 # Derived from this repo's actual `git remote -v` at authoring time. Used
 # only as a fallback when this script is run standalone (not from within a
 # checkout that already has artifacts/ next to it).
-DEFAULT_REPO_URL = "https://github.com/SQLClause/FabConBCNRTI-workshop.git"
+DEFAULT_REPO_URL = "https://github.com/brianbonk/FabConBCNLabs.git"
 REPO_SUBDIR_TO_FABRICIQ = "FabricIQ"  # FabricIQ/ lives at this path inside the repo
 
 PREREQUISITES_PATH = "prerequisites/PREREQUISITES.md"
